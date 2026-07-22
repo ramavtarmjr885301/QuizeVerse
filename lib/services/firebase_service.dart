@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/services.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import '../models/question_model.dart';
 import '../models/user_model.dart';
 
@@ -9,15 +11,41 @@ class FirebaseService {
 
   // ==================== AUTH ====================
 
+  static final GoogleSignIn _googleSignIn = GoogleSignIn();
+
+  // ==================== GOOGLE SIGN IN ====================
+
+  static Future<UserCredential?> signInWithGoogle() async {
+    try {
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      if (googleUser == null) return null;
+
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
+
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      return await _auth.signInWithCredential(credential);
+    } on PlatformException catch (e) {
+      if (e.code == 'network_error') {
+        throw Exception(
+          'No internet connection. Please check your network and try again.',
+        );
+      }
+      throw Exception('Google sign in failed: ${e.message}');
+    } on FirebaseAuthException catch (e) {
+      throw Exception('Google sign in failed: ${e.message}');
+    } catch (e) {
+      throw Exception('Google sign in failed: $e');
+    }
+  }
+
   static Future<UserCredential> signInAnonymously() async {
     try {
-      // ✅ Check if already signed in
-      if (_auth.currentUser != null) {
-        // ✅ FIX: Don't use fromJson - just return a dummy credential
-        // Instead, we'll just return the current user via a different approach
-        // For now, we'll sign out and sign in again
-        // Or we can handle this differently
-      }
+      if (_auth.currentUser != null) {}
 
       // ✅ Try anonymous sign in
       final result = await _auth.signInAnonymously();
@@ -37,6 +65,7 @@ class FirebaseService {
 
   static Future<void> signOut() async {
     try {
+      await _googleSignIn.signOut();
       await _auth.signOut();
     } catch (e) {
       throw Exception('Failed to sign out: $e');
@@ -115,15 +144,22 @@ class FirebaseService {
           .get();
 
       if (snapshot.docs.isEmpty) {
-        return QuestionModel.getSampleQuestions();
+        return _fallbackForCategory(category);
       }
 
-      return snapshot.docs.map((doc) {
-        return QuestionModel.fromFirestore(doc.data(), doc.id);
-      }).toList();
+      return snapshot.docs
+          .map((doc) => QuestionModel.fromFirestore(doc.data(), doc.id))
+          .toList();
     } catch (e) {
-      return QuestionModel.getSampleQuestions();
+      return _fallbackForCategory(category);
     }
+  }
+
+  static List<QuestionModel> _fallbackForCategory(String category) {
+    final filtered = QuestionModel.getSampleQuestions()
+        .where((q) => q.category == category)
+        .toList();
+    return filtered.isNotEmpty ? filtered : QuestionModel.getSampleQuestions();
   }
 
   static Future<void> addQuestion(QuestionModel question) async {

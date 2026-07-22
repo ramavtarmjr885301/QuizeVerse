@@ -75,7 +75,7 @@ class QuizProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Answer current question
+  // Answer current question — computes correctness, does NOT advance index
   bool answerQuestion(int selectedIndex) {
     if (currentQuestion == null) return false;
 
@@ -86,10 +86,14 @@ class QuizProvider extends ChangeNotifier {
       _coinsEarned += currentQuestion!.coins;
     }
 
+    notifyListeners();
+    return isCorrect;
+  }
+
+  // NEW: advances to next question — call this AFTER showing the result
+  void moveToNextQuestion() {
     _currentIndex += 1;
     notifyListeners();
-
-    return isCorrect;
   }
 
   // Skip question (no score)

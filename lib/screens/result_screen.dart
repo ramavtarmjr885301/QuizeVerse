@@ -4,8 +4,30 @@ import '../providers/quiz_provider.dart';
 import '../providers/user_provider.dart';
 import '../widgets/ad_banner.dart';
 
-class ResultScreen extends StatelessWidget {
+class ResultScreen extends StatefulWidget {
   const ResultScreen({super.key});
+
+  @override
+  State<ResultScreen> createState() => _ResultScreenState();
+}
+
+class _ResultScreenState extends State<ResultScreen> {
+  bool _hasFinishedQuiz = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_hasFinishedQuiz) {
+      _hasFinishedQuiz = true;
+      final quizProvider = Provider.of<QuizProvider>(context, listen: false);
+      final userProvider = Provider.of<UserProvider>(context, listen: false);
+      final score = quizProvider.score;
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        userProvider.finishQuiz(score);
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -14,9 +36,11 @@ class ResultScreen extends StatelessWidget {
     final totalQuestions = quizProvider.totalQuestions;
     final score = quizProvider.score;
     final coinsEarned = quizProvider.coinsEarned;
-    final percentage = totalQuestions > 0 ? (score / totalQuestions * 100) : 0;
 
-    // Performance message
+    final double percentage = totalQuestions > 0
+        ? (score / totalQuestions * 100)
+        : 0.0;
+
     String message;
     IconData icon;
     Color color;
@@ -46,7 +70,6 @@ class ResultScreen extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Result Icon
               Container(
                 width: 120,
                 height: 120,
@@ -59,7 +82,6 @@ class ResultScreen extends StatelessWidget {
 
               const SizedBox(height: 24),
 
-              // Message
               Text(
                 message,
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
@@ -71,7 +93,6 @@ class ResultScreen extends StatelessWidget {
 
               const SizedBox(height: 32),
 
-              // Stats Cards
               Row(
                 children: [
                   _buildStatCard(
@@ -102,7 +123,6 @@ class ResultScreen extends StatelessWidget {
 
               const SizedBox(height: 32),
 
-              // High Score Update
               if (userProvider.user != null &&
                   score > (userProvider.user?.highScore ?? 0))
                 Container(
@@ -112,11 +132,11 @@ class ResultScreen extends StatelessWidget {
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: Colors.amber.withOpacity(0.3)),
                   ),
-                  child: Row(
+                  child: const Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(Icons.star, color: Colors.amber),
-                      const SizedBox(width: 8),
+                      Icon(Icons.star, color: Colors.amber),
+                      SizedBox(width: 8),
                       Text(
                         '🏆 New High Score!',
                         style: TextStyle(
@@ -131,10 +151,8 @@ class ResultScreen extends StatelessWidget {
 
               const Spacer(),
 
-              // Action Buttons
               Column(
                 children: [
-                  // Play Again
                   SizedBox(
                     width: double.infinity,
                     height: 56,
@@ -159,7 +177,6 @@ class ResultScreen extends StatelessWidget {
 
                   const SizedBox(height: 12),
 
-                  // Home
                   SizedBox(
                     width: double.infinity,
                     height: 56,
@@ -186,9 +203,8 @@ class ResultScreen extends StatelessWidget {
 
               const SizedBox(height: 16),
 
-              // Ad Banner
               const AdBanner(
-                adUnitId: 'ca-app-pub-3940256099942544/6300978111', // Test ID
+                adUnitId: 'ca-app-pub-3940256099942544/6300978111',
               ),
             ],
           ),
@@ -224,7 +240,10 @@ class ResultScreen extends StatelessWidget {
                 fontSize: 20,
               ),
             ),
-            Text(label, style: TextStyle(color: Colors.white54, fontSize: 11)),
+            Text(
+              label,
+              style: const TextStyle(color: Colors.white54, fontSize: 11),
+            ),
           ],
         ),
       ),

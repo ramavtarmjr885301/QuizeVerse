@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:provider/provider.dart';
 import '../providers/user_provider.dart';
 
@@ -15,6 +16,22 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final userProvider = Provider.of<UserProvider>(context);
+    Future<void> _signInWithGoogle() async {
+      setState(() => _isLoading = true);
+
+      final userProvider = Provider.of<UserProvider>(context, listen: false);
+      final success = await userProvider.signInWithGoogle();
+
+      setState(() => _isLoading = false);
+
+      if (success && mounted) {
+        Navigator.pushReplacementNamed(context, '/home');
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Google sign in cancelled or failed.')),
+        );
+      }
+    }
 
     return Scaffold(
       body: SafeArea(
@@ -73,22 +90,12 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-              // Optional: Google Sign In (future enhancement)
               OutlinedButton.icon(
-                onPressed: _isLoading
-                    ? null
-                    : () {
-                        // Google Sign In - can add later
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Google Sign In coming soon!'),
-                          ),
-                        );
-                      },
-                icon: Image.network(
-                  'https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg',
-                  width: 24,
-                  height: 24,
+                onPressed: _isLoading ? null : _signInWithGoogle,
+                icon: const FaIcon(
+                  FontAwesomeIcons.google,
+                  size: 20,
+                  color: Colors.white,
                 ),
                 label: const Text('Continue with Google'),
                 style: OutlinedButton.styleFrom(

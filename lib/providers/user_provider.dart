@@ -30,7 +30,6 @@ class UserProvider extends ChangeNotifier {
           _user = userData;
           _isGuest = false;
         } else {
-          // User deleted from Firebase, clear local
           await prefs.remove('user_uid');
         }
       }
@@ -40,6 +39,53 @@ class UserProvider extends ChangeNotifier {
 
     _isLoading = false;
     notifyListeners();
+  }
+
+  Future<bool> signInWithGoogle() async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      final credential = await FirebaseService.signInWithGoogle();
+
+      if (credential == null) {
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
+
+      final firebaseUser = credential.user;
+      final uid = firebaseUser?.uid;
+
+      if (uid != null) {
+        var userData = await FirebaseService.getUser(uid);
+
+        if (userData == null) {
+          await FirebaseService.createUser(
+            uid,
+            name: firebaseUser?.displayName ?? 'Player',
+          );
+          userData = await FirebaseService.getUser(uid);
+        }
+
+        if (userData != null) {
+          _user = userData;
+          _isGuest = false;
+          await prefs.setString('user_uid', uid);
+          _isLoading = false;
+          notifyListeners();
+          return true;
+        }
+      }
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    } catch (e) {
+      debugPrint('Google sign in error: $e');
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
   }
 
   // Sign in as Guest (Anonymous)
@@ -52,11 +98,9 @@ class UserProvider extends ChangeNotifier {
       final uid = credential.user?.uid;
 
       if (uid != null) {
-        // Check if user exists in Firestore
         var userData = await FirebaseService.getUser(uid);
 
         if (userData == null) {
-          // Create new user with welcome bonus
           await FirebaseService.createUser(
             uid,
             name: 'Guest${uid.substring(0, 4)}',
@@ -93,7 +137,58 @@ class UserProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Update user data
+  // Called after each answered question (coins + correct/wrong count)
+  Future<void> recordQuizResult({
+    required bool isCorrect,
+    required int coinsEarned,
+  }) async {
+    if (_user == null) return;
+
+    final data = <String, dynamic>{
+      'coins': _user!.coins + coinsEarned,
+      if (isCorrect)
+        'correctAnswers': _user!.correctAnswers + 1
+      else
+        'wrongAnswers': _user!.wrongAnswers + 1,
+    };
+
+    try {
+      await FirebaseService.updateUser(_user!.uid, data);
+      final updatedUser = await FirebaseService.getUser(_user!.uid);
+      if (updatedUser != null) {
+        _user = updatedUser;
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('Record quiz result error: $e');
+    }
+  }
+
+  // NEW: Called ONCE when a full quiz session ends (on ResultScreen).
+  // Updates gamesPlayed, highScore (if beaten), and streak — in one flow.
+  Future<void> finishQuiz(int finalScore) async {
+    if (_user == null) return;
+
+    final data = <String, dynamic>{
+      'gamesPlayed': _user!.gamesPlayed + 1,
+      if (finalScore > _user!.highScore) 'highScore': finalScore,
+    };
+
+    try {
+      await FirebaseService.updateUser(_user!.uid, data);
+      await FirebaseService.updateStreak(_user!.uid);
+
+      final updatedUser = await FirebaseService.getUser(_user!.uid);
+      if (updatedUser != null) {
+        _user = updatedUser;
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('Finish quiz error: $e');
+    }
+  }
+
+  // Generic update (kept for any other future use)
   Future<void> updateUser(Map<String, dynamic> data) async {
     if (_user == null) return;
 
@@ -106,35 +201,6 @@ class UserProvider extends ChangeNotifier {
       }
     } catch (e) {
       debugPrint('Update user error: $e');
-    }
-  }
-
-  // Add coins
-  Future<void> addCoins(int amount) async {
-    if (_user == null) return;
-
-    final newCoins = (_user!.coins + amount);
-    await updateUser({'coins': newCoins});
-  }
-
-  // Update high score
-  Future<void> updateHighScore(int score) async {
-    if (_user == null) return;
-    if (score > _user!.highScore) {
-      await updateUser({'highScore': score});
-    }
-    // Always increment games played
-    await updateUser({'gamesPlayed': (_user!.gamesPlayed + 1)});
-  }
-
-  // Update correct/wrong answers
-  Future<void> updateAnswers({required bool correct}) async {
-    if (_user == null) return;
-
-    if (correct) {
-      await updateUser({'correctAnswers': (_user!.correctAnswers + 1)});
-    } else {
-      await updateUser({'wrongAnswers': (_user!.wrongAnswers + 1)});
     }
   }
 

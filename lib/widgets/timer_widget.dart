@@ -36,6 +36,10 @@ class _TimerWidgetState extends State<TimerWidget> {
 
   void _startTimer() {
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
       setState(() {
         _remaining--;
         widget.onTick(_remaining);

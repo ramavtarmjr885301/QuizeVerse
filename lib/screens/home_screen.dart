@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/user_provider.dart';
 import '../providers/quiz_provider.dart';
-import '../widgets/ad_banner.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -12,7 +11,6 @@ class HomeScreen extends StatelessWidget {
     final userProvider = Provider.of<UserProvider>(context);
     final quizProvider = Provider.of<QuizProvider>(context);
 
-    // Categories list
     final categories = [
       'General',
       'Science',
@@ -21,6 +19,13 @@ class HomeScreen extends StatelessWidget {
       'Sports',
       'Entertainment',
     ];
+
+    final user = userProvider.user;
+    final hasName = user?.name != null && user!.name!.isNotEmpty;
+    final avatarInitial = hasName
+        ? user!.name!.substring(0, 1).toUpperCase()
+        : 'G';
+    final gamesPlayed = user?.gamesPlayed ?? 0;
 
     return Scaffold(
       body: SafeArea(
@@ -48,8 +53,7 @@ class HomeScreen extends StatelessWidget {
                     radius: 28,
                     backgroundColor: Colors.white.withOpacity(0.2),
                     child: Text(
-                      userProvider.user?.name?.substring(0, 1).toUpperCase() ??
-                          'G',
+                      avatarInitial,
                       style: const TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
@@ -64,7 +68,7 @@ class HomeScreen extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          userProvider.user?.name ?? 'Guest',
+                          hasName ? user.name! : 'Guest',
                           style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -73,7 +77,7 @@ class HomeScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          'Level ${userProvider.user?.level ?? 1}: ${userProvider.user?.levelTitle ?? 'Beginner'}',
+                          'Level ${user?.level ?? 1}: ${(user?.levelTitle ?? '').isNotEmpty ? user!.levelTitle : 'Beginner'}',
                           style: TextStyle(
                             fontSize: 12,
                             color: Colors.white.withOpacity(0.8),
@@ -102,7 +106,7 @@ class HomeScreen extends StatelessWidget {
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          '${userProvider.user?.coins ?? 0}',
+                          '${user?.coins ?? 0}',
                           style: const TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
@@ -127,7 +131,7 @@ class HomeScreen extends StatelessWidget {
                     context,
                     icon: Icons.star,
                     label: 'High Score',
-                    value: '${userProvider.user?.highScore ?? 0}',
+                    value: '${user?.highScore ?? 0}',
                     color: Colors.orange,
                   ),
                   const SizedBox(width: 12),
@@ -135,8 +139,10 @@ class HomeScreen extends StatelessWidget {
                     context,
                     icon: Icons.check_circle,
                     label: 'Accuracy',
-                    value:
-                        '${((userProvider.user?.accuracy ?? 0) * 100).toInt()}%',
+                    // FIX: avoid NaN.toInt() crash when gamesPlayed == 0
+                    value: gamesPlayed > 0
+                        ? '${((user?.accuracy ?? 0) * 100).toInt()}%'
+                        : '—',
                     color: Colors.green,
                   ),
                   const SizedBox(width: 12),
@@ -144,7 +150,7 @@ class HomeScreen extends StatelessWidget {
                     context,
                     icon: Icons.local_fire_department,
                     label: 'Streak',
-                    value: '${userProvider.user?.streakDays ?? 0}🔥',
+                    value: '${user?.streakDays ?? 0}🔥',
                     color: Colors.red,
                   ),
                 ],
@@ -267,9 +273,9 @@ class HomeScreen extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  IconButton(
+                  const IconButton(
                     onPressed: null,
-                    icon: const Icon(Icons.home, color: Colors.white, size: 28),
+                    icon: Icon(Icons.home, color: Colors.white, size: 28),
                   ),
                   IconButton(
                     onPressed: () {
@@ -327,7 +333,10 @@ class HomeScreen extends StatelessWidget {
                 fontSize: 16,
               ),
             ),
-            Text(label, style: TextStyle(color: Colors.white54, fontSize: 10)),
+            Text(
+              label,
+              style: const TextStyle(color: Colors.white54, fontSize: 10),
+            ),
           ],
         ),
       ),

@@ -17,10 +17,13 @@ class QuestionCard extends StatelessWidget {
     this.isTimerFinished = false,
   });
 
+  // FIX: dynamic letter generation instead of hardcoded 4-item list —
+  // won't crash if a question ever has more than 4 options
+  String _letterFor(int index) =>
+      String.fromCharCode(65 + index); // A, B, C, D, E...
+
   @override
   Widget build(BuildContext context) {
-    final letters = ['A', 'B', 'C', 'D'];
-
     return ListView.builder(
       itemCount: question.options.length,
       itemBuilder: (context, index) {
@@ -28,7 +31,7 @@ class QuestionCard extends StatelessWidget {
           padding: const EdgeInsets.only(bottom: 12),
           child: _buildOption(
             context,
-            letter: letters[index],
+            letter: _letterFor(index),
             text: question.options[index],
             index: index,
           ),

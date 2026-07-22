@@ -173,6 +173,15 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                     final uid = users[index].id;
                     final isCurrentUser = uid == currentUid;
 
+                    // FIX: safe name + initial extraction (no crash on empty string)
+                    final rawName = userData['name'] as String?;
+                    final displayName = (rawName != null && rawName.isNotEmpty)
+                        ? rawName
+                        : 'Player';
+                    final avatarInitial = displayName
+                        .substring(0, 1)
+                        .toUpperCase();
+
                     return Container(
                       margin: const EdgeInsets.symmetric(
                         horizontal: 16,
@@ -222,9 +231,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                             radius: 18,
                             backgroundColor: Colors.white.withOpacity(0.1),
                             child: Text(
-                              (userData['name'] ?? 'P')
-                                  .substring(0, 1)
-                                  .toUpperCase(),
+                              avatarInitial,
                               style: const TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.bold,
@@ -241,7 +248,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  userData['name'] ?? 'Player',
+                                  displayName,
                                   style: TextStyle(
                                     color: isCurrentUser
                                         ? Theme.of(context).primaryColor
@@ -313,7 +320,8 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     Color color,
   ) {
     final data = user.data() as Map<String, dynamic>;
-    final name = data['name'] ?? 'Player';
+    final rawName = data['name'] as String?;
+    final name = (rawName != null && rawName.isNotEmpty) ? rawName : 'Player';
     final score = data['highScore'] ?? 0;
 
     return Column(
@@ -345,7 +353,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
         ),
         Text(
           '$score pts',
-          style: TextStyle(color: Colors.white54, fontSize: 10),
+          style: const TextStyle(color: Colors.white54, fontSize: 10),
         ),
       ],
     );
