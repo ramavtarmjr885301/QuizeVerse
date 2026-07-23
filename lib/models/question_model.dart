@@ -3,9 +3,9 @@ class QuestionModel {
   final String category;
   final String question;
   final List<String> options;
-  final int correctAnswerIndex; // 0, 1, 2, 3
-  final int difficulty; // 1 = Easy, 2 = Medium, 3 = Hard
-  final int coins; // Coins earned on correct answer
+  final int correctAnswerIndex;
+  final int difficulty;
+  final int coins;
 
   QuestionModel({
     required this.id,
@@ -17,7 +17,6 @@ class QuestionModel {
     this.coins = 10,
   });
 
-  // Convert Firestore document to QuestionModel
   factory QuestionModel.fromFirestore(Map<String, dynamic> data, String id) {
     return QuestionModel(
       id: id,
@@ -30,7 +29,6 @@ class QuestionModel {
     );
   }
 
-  // Convert QuestionModel to Map (for Firebase)
   Map<String, dynamic> toFirestore() {
     return {
       'category': category,
@@ -42,7 +40,6 @@ class QuestionModel {
     };
   }
 
-  // For local testing (hardcoded questions)
   static List<QuestionModel> getSampleQuestions() {
     return [
       QuestionModel(

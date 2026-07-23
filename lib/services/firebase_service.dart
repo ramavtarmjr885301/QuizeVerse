@@ -342,6 +342,27 @@ class FirebaseService {
     }
   }
 
+  static Future<bool> spendCoins(String uid, int amount) async {
+    final docRef = _firestore.collection('users').doc(uid);
+
+    try {
+      return await _firestore.runTransaction<bool>((transaction) async {
+        final snapshot = await transaction.get(docRef);
+        final currentCoins = (snapshot.data()?['coins'] ?? 0) as int;
+
+        if (currentCoins < amount) {
+          return false;
+        }
+
+        transaction.update(docRef, {'coins': currentCoins - amount});
+        return true;
+      });
+    } catch (e) {
+      debugPrint('Spend coins error: $e');
+      return false;
+    }
+  }
+
   static bool isAnonymousAuthEnabled() {
     return true;
   }

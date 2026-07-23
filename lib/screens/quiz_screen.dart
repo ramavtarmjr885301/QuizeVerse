@@ -18,6 +18,39 @@ class _QuizScreenState extends State<QuizScreen> {
   int? _selectedOptionIndex;
   bool _isTimerFinished = false;
   bool _hasNavigatedToResult = false;
+  int kHintCost = 8;
+
+  Future<void> _handleHintTap(
+    QuizProvider quizProvider,
+    UserProvider userProvider,
+  ) async {
+    final currentCoins = userProvider.user?.coins ?? 0;
+
+    if (currentCoins < kHintCost) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Not enough coins for a hint!'),
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
+    final success = await userProvider.spendCoins(kHintCost);
+
+    if (success) {
+      quizProvider.applyHint();
+    } else if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Not enough coins for a hint!'),
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -271,11 +304,45 @@ class _QuizScreenState extends State<QuizScreen> {
                     ),
                   ),
 
+                  // const SizedBox(height: 24),
+                  const SizedBox(height: 12),
+
+                  // NEW — Hint button (only if not answered, timer not finished, hint not used yet)
+                  if (!_isAnswered &&
+                      !_isTimerFinished &&
+                      !quizProvider.hintUsedForCurrentQuestion)
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: OutlinedButton.icon(
+                        onPressed: () =>
+                            _handleHintTap(quizProvider, userProvider),
+                        icon: const Icon(
+                          Icons.lightbulb_outline,
+                          size: 16,
+                          color: Colors.amber,
+                        ),
+                        label: Text(
+                          '50-50 Hint ($kHintCost coins)',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Colors.amber,
+                          ),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Colors.amber, width: 1),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                      ),
+                    ),
+
                   const SizedBox(height: 24),
 
-                  // Options + Skip button (scrollable so it doesn't overflow
-                  // on small screens, and Skip stays right below the options
-                  // instead of stuck at the bottom of the screen)
                   Expanded(
                     child: SingleChildScrollView(
                       child: Column(
@@ -313,45 +380,46 @@ class _QuizScreenState extends State<QuizScreen> {
                             selectedIndex: _selectedOptionIndex,
                             isAnswered: _isAnswered,
                             isTimerFinished: _isTimerFinished,
+                            hiddenIndices: quizProvider.hiddenOptionIndices,
                           ),
 
-                          const SizedBox(height: 12),
+                          // const SizedBox(height: 12),
 
-                          // Skip button (only if not answered)
-                          if (!_isAnswered && !_isTimerFinished)
-                            Container(
-                              width: double.infinity,
-                              height: 60,
-                              child: ElevatedButton.icon(
-                                onPressed: () {
-                                  quizProvider.skipQuestion();
-                                  setState(() {
-                                    _isTimerFinished = false;
-                                  });
-                                },
-                                icon: const Icon(
-                                  Icons.skip_next_rounded,
-                                  size: 25,
-                                ),
-                                label: const Text('Skip Question'),
-                                style: ElevatedButton.styleFrom(
-                                  foregroundColor: Colors.amber,
-                                  backgroundColor: Colors.transparent,
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 18,
-                                    vertical: 10,
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(20),
-                                    side: const BorderSide(color: Colors.amber),
-                                  ),
-                                  textStyle: const TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ),
-                            ),
+                          // // Skip button (only if not answered)
+                          // if (!_isAnswered && !_isTimerFinished)
+                          //   Container(
+                          //     width: double.infinity,
+                          //     height: 60,
+                          //     child: ElevatedButton.icon(
+                          //       onPressed: () {
+                          //         quizProvider.skipQuestion();
+                          //         setState(() {
+                          //           _isTimerFinished = false;
+                          //         });
+                          //       },
+                          //       icon: const Icon(
+                          //         Icons.skip_next_rounded,
+                          //         size: 25,
+                          //       ),
+                          //       label: const Text('Skip Question'),
+                          //       style: ElevatedButton.styleFrom(
+                          //         foregroundColor: Colors.amber,
+                          //         backgroundColor: Colors.transparent,
+                          //         padding: const EdgeInsets.symmetric(
+                          //           horizontal: 18,
+                          //           vertical: 10,
+                          //         ),
+                          //         shape: RoundedRectangleBorder(
+                          //           borderRadius: BorderRadius.circular(20),
+                          //           side: const BorderSide(color: Colors.amber),
+                          //         ),
+                          //         textStyle: const TextStyle(
+                          //           fontSize: 13,
+                          //           fontWeight: FontWeight.w600,
+                          //         ),
+                          //       ),
+                          //     ),
+                          // ),
                         ],
                       ),
                     ),

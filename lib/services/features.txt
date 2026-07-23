@@ -1,0 +1,8 @@
+Remove ads — X coins jama karke ek time ke liye ya permanently ads hata do
+Extra lives / retries — agar kabhi "lives" system add karo, to coins se buy kar sako
+Hints / 50-50 lifeline — quiz ke andar, jaise KBC style — coins kharch karke 2 galat options hata do
+Skip without penalty — abhi tumhara skip free hai, isko bhi coins-gated bana sakte ho (optional)
+Cosmetic unlocks — avatar, themes, badges
+Leaderboard entry / tournaments — coins se paid tournaments join karna
+Streak freeze — agar streak system hai (jo dikh raha hai streakDays field me), to coins se ek din ka streak "freeze" kharido (Duolingo jaisa)
+Convert to real rewards — kuch apps me coins ko gift cards/vouchers se redeem karte hain (zyada complex, payment/legal involve hota hai)

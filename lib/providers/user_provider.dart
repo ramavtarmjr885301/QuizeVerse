@@ -186,11 +186,10 @@ class UserProvider extends ChangeNotifier {
       return true;
     } catch (e) {
       debugPrint('Delete account error: $e');
-      rethrow; // let UI show the specific error message
+      rethrow;
     }
   }
 
-  // Called after each answered question (coins + correct/wrong count)
   Future<void> recordQuizResult({
     required bool isCorrect,
     required int coinsEarned,
@@ -199,6 +198,7 @@ class UserProvider extends ChangeNotifier {
 
     final data = <String, dynamic>{
       'coins': _user!.coins + coinsEarned,
+      'totalCoinsEarned': _user!.totalCoinsEarned + coinsEarned,
       if (isCorrect)
         'correctAnswers': _user!.correctAnswers + 1
       else
@@ -216,30 +216,6 @@ class UserProvider extends ChangeNotifier {
       debugPrint('Record quiz result error: $e');
     }
   }
-
-  // NEW: Called ONCE when a full quiz session ends (on ResultScreen).
-  // Updates gamesPlayed, highScore (if beaten), and streak — in one flow.
-  // Future<void> finishQuiz(int finalScore) async {
-  //   if (_user == null) return;
-
-  //   final data = <String, dynamic>{
-  //     'gamesPlayed': _user!.gamesPlayed + 1,
-  //     if (finalScore > _user!.highScore) 'highScore': finalScore,
-  //   };
-
-  //   try {
-  //     await FirebaseService.updateUser(_user!.uid, data);
-  //     await FirebaseService.updateStreak(_user!.uid);
-
-  //     final updatedUser = await FirebaseService.getUser(_user!.uid);
-  //     if (updatedUser != null) {
-  //       _user = updatedUser;
-  //       notifyListeners();
-  //     }
-  //   } catch (e) {
-  //     debugPrint('Finish quiz error: $e');
-  //   }
-  // }
 
   Future<void> finishQuiz(int finalScore, {bool isDaily = false}) async {
     if (_user == null) return;
@@ -296,5 +272,21 @@ class UserProvider extends ChangeNotifier {
     } catch (e) {
       debugPrint('Refresh user error: $e');
     }
+  }
+
+  Future<bool> spendCoins(int amount) async {
+    if (_user == null) return false;
+
+    final success = await FirebaseService.spendCoins(_user!.uid, amount);
+
+    if (success) {
+      final updatedUser = await FirebaseService.getUser(_user!.uid);
+      if (updatedUser != null) {
+        _user = updatedUser;
+        notifyListeners();
+      }
+    }
+
+    return success;
   }
 }
