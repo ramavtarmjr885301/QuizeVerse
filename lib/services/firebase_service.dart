@@ -42,6 +42,52 @@ class FirebaseService {
       throw Exception('Google sign in failed: $e');
     }
   }
+  // ==================== LINK GUEST TO GOOGLE ====================
+
+  static Future<UserCredential> linkGuestToGoogle() async {
+    final currentUser = _auth.currentUser;
+
+    if (currentUser == null) {
+      throw Exception('No user is currently signed in.');
+    }
+    if (!currentUser.isAnonymous) {
+      throw Exception('This account is already a registered account.');
+    }
+
+    try {
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      if (googleUser == null) {
+        throw Exception('Google sign-in was cancelled.');
+      }
+
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
+
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      // linkWithCredential keeps the SAME uid — existing Firestore doc,
+      // coins, streak, everything stays intact.
+      final linkedCredential = await currentUser.linkWithCredential(credential);
+      return linkedCredential;
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'credential-already-in-use') {
+        throw Exception(
+          'This Google account is already linked to another profile. '
+          'Please use a different Google account.',
+        );
+      } else if (e.code == 'provider-already-linked') {
+        throw Exception('This account is already linked to Google.');
+      } else if (e.code == 'network-request-failed') {
+        throw Exception('No internet connection. Please try again.');
+      }
+      throw Exception('Failed to link account: ${e.message}');
+    } catch (e) {
+      throw Exception('Failed to link account: $e');
+    }
+  }
 
   static Future<UserCredential> signInAnonymously() async {
     try {
@@ -89,6 +135,30 @@ class FirebaseService {
       await _firestore.collection('users').doc(uid).set(user.toFirestore());
     } catch (e) {
       throw Exception('Failed to create user: $e');
+    }
+  }
+
+  // ==================== DELETE ACCOUNT ====================
+
+  static Future<void> deleteAccount(String uid) async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) throw Exception('No user is currently signed in.');
+
+      // 1. Delete Firestore user document first
+      await _firestore.collection('users').doc(uid).delete();
+
+      // 2. Delete the Firebase Auth account
+      await user.delete();
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'requires-recent-login') {
+        throw Exception(
+          'For security, please sign in again before deleting your account.',
+        );
+      }
+      throw Exception('Failed to delete account: ${e.message}');
+    } catch (e) {
+      throw Exception('Failed to delete account: $e');
     }
   }
 
@@ -175,10 +245,24 @@ class FirebaseService {
   static Stream<QuerySnapshot> getLeaderboard() {
     return _firestore
         .collection('users')
+        .where(
+          'highScore',
+          isGreaterThan: 0,
+        ) // only users who've actually played
         .orderBy('highScore', descending: true)
         .limit(100)
         .snapshots();
   }
+  /* also for hiding geust accounts
+  static Stream<QuerySnapshot> getLeaderboard() {
+    return _firestore
+        .collection('users')
+        .where('highScore', isGreaterThan: 0)
+        .orderBy('highScore', descending: true)
+        .limit(100)
+        .snapshots();
+  }
+  */
 
   // ==================== DAILY CHALLENGE ====================
 

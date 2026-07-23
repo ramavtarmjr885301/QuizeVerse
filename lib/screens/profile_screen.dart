@@ -29,6 +29,25 @@ class ProfileScreen extends StatelessWidget {
     final userProvider = Provider.of<UserProvider>(context);
     final user = userProvider.user;
 
+    // GUARD: if user becomes null while this screen is active
+    // (e.g. deleted/logged out from elsewhere), bail out to login safely
+    // instead of crashing on a null user.
+    if (user == null && !userProvider.isLoading) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (context.mounted) {
+          Navigator.of(
+            context,
+          ).pushNamedAndRemoveUntil('/login', (route) => false);
+        }
+      });
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    // Still loading (e.g. initial fetch) — show spinner, don't touch `user!`
+    if (user == null) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Profile'),
@@ -36,42 +55,41 @@ class ProfileScreen extends StatelessWidget {
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
-      body: user == null
-          ? const Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
-              onRefresh: () => userProvider.refreshUser(),
-              child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
-                ),
-                child: Column(
-                  children: [
-                    _buildAvatarCard(context, userProvider, user),
-                    const SizedBox(height: 20),
-                    _buildStatsGrid(context, user),
-                    const SizedBox(height: 20),
-                    _buildProgressCard(context, user),
-                    const SizedBox(height: 20),
-                    _buildLogoutButton(context, userProvider),
-                    const SizedBox(height: 14),
-                    TextButton(
-                      onPressed: () =>
-                          _showDeleteAccountDialog(context, userProvider),
-                      child: Text(
-                        'Delete Account',
-                        style: TextStyle(
-                          color: Colors.red.withOpacity(0.5),
-                          fontSize: 14,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                  ],
+      body: RefreshIndicator(
+        onRefresh: () => userProvider.refreshUser(),
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: Column(
+            children: [
+              _buildAvatarCard(context, userProvider, user),
+              const SizedBox(height: 20),
+              if (userProvider.isGuest) ...[
+                _buildGuestUpgradeCard(context, userProvider),
+                const SizedBox(height: 20),
+              ],
+              _buildStatsGrid(context, user),
+              const SizedBox(height: 20),
+              _buildProgressCard(context, user),
+              const SizedBox(height: 20),
+              _buildLogoutButton(context, userProvider),
+              const SizedBox(height: 14),
+              TextButton(
+                onPressed: () =>
+                    _showDeleteAccountDialog(context, userProvider),
+                child: Text(
+                  'Delete Account',
+                  style: TextStyle(
+                    color: Colors.red.withValues(alpha: 0.5),
+                    fontSize: 14,
+                  ),
                 ),
               ),
-            ),
+              const SizedBox(height: 20),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -91,13 +109,13 @@ class ProfileScreen extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Theme.of(context).primaryColor.withOpacity(0.25),
-            Theme.of(context).primaryColor.withOpacity(0.05),
+            Theme.of(context).primaryColor.withValues(alpha: 0.25),
+            Theme.of(context).primaryColor.withValues(alpha: 0.05),
           ],
         ),
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: Theme.of(context).primaryColor.withOpacity(0.2),
+          color: Theme.of(context).primaryColor.withValues(alpha: 0.2),
         ),
       ),
       child: Column(
@@ -159,8 +177,8 @@ class ProfileScreen extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
             decoration: BoxDecoration(
               color: userProvider.isGuest
-                  ? Colors.orange.withOpacity(0.2)
-                  : Colors.green.withOpacity(0.2),
+                  ? Colors.orange.withValues(alpha: 0.2)
+                  : Colors.green.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
@@ -175,6 +193,93 @@ class ProfileScreen extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Widget _buildGuestUpgradeCard(
+    BuildContext context,
+    UserProvider userProvider,
+  ) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.amber.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.info_outline, color: Colors.amber, size: 20),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'You\'re playing as a guest',
+                  style: TextStyle(
+                    color: Colors.amber.shade200,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Your progress is only saved on this device. Sign in with Google '
+            'to keep your coins, streak, and score safe forever.',
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.7),
+              fontSize: 12,
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () => _handleUpgradeToGoogle(context, userProvider),
+              icon: const Icon(Icons.g_mobiledata, size: 24),
+              label: const Text('Sign in with Google'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.amber,
+                foregroundColor: Colors.black,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _handleUpgradeToGoogle(
+    BuildContext context,
+    UserProvider userProvider,
+  ) async {
+    try {
+      final success = await userProvider.linkGuestToGoogle();
+      if (context.mounted && success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Account upgraded! Your progress is now saved.'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString().replaceFirst('Exception: ', '')),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   Widget _buildStatsGrid(BuildContext context, dynamic user) {
@@ -223,7 +328,7 @@ class ProfileScreen extends StatelessWidget {
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withOpacity(0.05)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -270,9 +375,9 @@ class ProfileScreen extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 10),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.08),
+        color: color.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: color.withOpacity(0.15)),
+        border: Border.all(color: color.withValues(alpha: 0.15)),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -306,7 +411,7 @@ class ProfileScreen extends StatelessWidget {
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withOpacity(0.05)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -334,7 +439,7 @@ class ProfileScreen extends StatelessWidget {
             borderRadius: BorderRadius.circular(6),
             child: LinearProgressIndicator(
               value: _getProgressForLevel(user.level, user.coins),
-              backgroundColor: Colors.white.withOpacity(0.1),
+              backgroundColor: Colors.white.withValues(alpha: 0.1),
               valueColor: AlwaysStoppedAnimation<Color>(
                 Theme.of(context).primaryColor,
               ),
@@ -369,10 +474,13 @@ class ProfileScreen extends StatelessWidget {
       child: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [Colors.red.withOpacity(0.2), Colors.red.withOpacity(0.05)],
+            colors: [
+              Colors.red.withValues(alpha: 0.2),
+              Colors.red.withValues(alpha: 0.05),
+            ],
           ),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.red.withOpacity(0.3)),
+          border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
         ),
         child: TextButton.icon(
           onPressed: () => _showLogoutDialog(context, userProvider),
@@ -405,13 +513,18 @@ class ProfileScreen extends StatelessWidget {
   void _showLogoutDialog(BuildContext context, UserProvider userProvider) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Logout?'),
-        content: const Text('Are you sure you want to logout?'),
-        backgroundColor: Theme.of(context).cardColor,
+        content: Text(
+          userProvider.isGuest
+              ? 'You are a guest. Logging out will permanently delete your '
+                    'progress unless you sign in with Google first. Are you sure?'
+              : 'Are you sure you want to logout?',
+        ),
+        backgroundColor: Theme.of(dialogContext).cardColor,
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text(
               'Cancel',
               style: TextStyle(color: Colors.white54),
@@ -419,14 +532,12 @@ class ProfileScreen extends StatelessWidget {
           ),
           TextButton(
             onPressed: () async {
-              Navigator.pop(context);
+              Navigator.pop(dialogContext);
               await userProvider.signOut();
               if (context.mounted) {
-                Navigator.pushNamedAndRemoveUntil(
+                Navigator.of(
                   context,
-                  '/login',
-                  (route) => false,
-                );
+                ).pushNamedAndRemoveUntil('/login', (route) => false);
               }
             },
             child: const Text('Logout', style: TextStyle(color: Colors.red)),
@@ -441,14 +552,17 @@ class ProfileScreen extends StatelessWidget {
     UserProvider userProvider,
   ) {
     final controller = TextEditingController();
+    bool isDeleting = false;
+
     showDialog(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) {
+      barrierDismissible: !isDeleting,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setState) {
           final isConfirmed = controller.text.trim() == 'DELETE';
           return AlertDialog(
             title: const Text('Delete Account?'),
-            backgroundColor: Theme.of(context).cardColor,
+            backgroundColor: Theme.of(dialogContext).cardColor,
             content: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -461,13 +575,14 @@ class ProfileScreen extends StatelessWidget {
                 Text(
                   'Type DELETE to confirm',
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.6),
+                    color: Colors.white.withValues(alpha: 0.6),
                     fontSize: 12,
                   ),
                 ),
                 const SizedBox(height: 8),
                 TextField(
                   controller: controller,
+                  enabled: !isDeleting,
                   onChanged: (_) => setState(() {}),
                   decoration: const InputDecoration(
                     border: OutlineInputBorder(),
@@ -475,25 +590,56 @@ class ProfileScreen extends StatelessWidget {
                     isDense: true,
                   ),
                 ),
+                if (isDeleting) ...[
+                  const SizedBox(height: 16),
+                  const Center(child: CircularProgressIndicator()),
+                ],
               ],
             ),
             actions: [
               TextButton(
-                onPressed: () => Navigator.pop(context),
+                onPressed: isDeleting
+                    ? null
+                    : () => Navigator.pop(dialogContext),
                 child: const Text(
                   'Cancel',
                   style: TextStyle(color: Colors.white54),
                 ),
               ),
               TextButton(
-                onPressed: isConfirmed
-                    ? () {
-                        Navigator.pop(context);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Account deletion coming soon!'),
-                          ),
-                        );
+                onPressed: (isConfirmed && !isDeleting)
+                    ? () async {
+                        setState(() => isDeleting = true);
+
+                        try {
+                          final success = await userProvider.deleteAccount();
+
+                          // Close the dialog using its OWN context
+                          if (dialogContext.mounted) {
+                            Navigator.pop(dialogContext);
+                          }
+
+                          // Navigate using the ORIGINAL screen context,
+                          // captured before the dialog ever opened
+                          if (success && context.mounted) {
+                            Navigator.of(context).pushNamedAndRemoveUntil(
+                              '/login',
+                              (route) => false,
+                            );
+                          }
+                        } catch (e) {
+                          setState(() => isDeleting = false);
+                          if (dialogContext.mounted) {
+                            ScaffoldMessenger.of(dialogContext).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  e.toString().replaceFirst('Exception: ', ''),
+                                ),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
+                        }
                       }
                     : null,
                 child: Text(
@@ -501,7 +647,7 @@ class ProfileScreen extends StatelessWidget {
                   style: TextStyle(
                     color: isConfirmed
                         ? Colors.red
-                        : Colors.red.withOpacity(0.3),
+                        : Colors.red.withValues(alpha: 0.3),
                   ),
                 ),
               ),

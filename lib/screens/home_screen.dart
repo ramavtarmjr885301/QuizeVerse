@@ -38,7 +38,7 @@ class HomeScreen extends StatelessWidget {
                 gradient: LinearGradient(
                   colors: [
                     Theme.of(context).primaryColor,
-                    Theme.of(context).primaryColor.withOpacity(0.6),
+                    Theme.of(context).primaryColor.withValues(alpha: 0.6),
                   ],
                 ),
                 borderRadius: const BorderRadius.only(
@@ -51,7 +51,7 @@ class HomeScreen extends StatelessWidget {
                   // Avatar
                   CircleAvatar(
                     radius: 28,
-                    backgroundColor: Colors.white.withOpacity(0.2),
+                    backgroundColor: Colors.white.withValues(alpha: 0.2),
                     child: Text(
                       avatarInitial,
                       style: const TextStyle(
@@ -80,7 +80,7 @@ class HomeScreen extends StatelessWidget {
                           'Level ${user?.level ?? 1}: ${(user?.levelTitle ?? '').isNotEmpty ? user!.levelTitle : 'Beginner'}',
                           style: TextStyle(
                             fontSize: 12,
-                            color: Colors.white.withOpacity(0.8),
+                            color: Colors.white.withValues(alpha: 0.8),
                           ),
                         ),
                       ],
@@ -93,9 +93,11 @@ class HomeScreen extends StatelessWidget {
                       vertical: 8,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.amber.withOpacity(0.2),
+                      color: Colors.amber.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: Colors.amber.withOpacity(0.3)),
+                      border: Border.all(
+                        color: Colors.amber.withValues(alpha: 0.3),
+                      ),
                     ),
                     child: Row(
                       children: [
@@ -250,6 +252,7 @@ class HomeScreen extends StatelessWidget {
                           return _buildCategoryCard(
                             context,
                             categories[index],
+                            index,
                             quizProvider,
                           );
                         },
@@ -319,7 +322,7 @@ class HomeScreen extends StatelessWidget {
         decoration: BoxDecoration(
           color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.white.withOpacity(0.05)),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
         ),
         child: Column(
           children: [
@@ -346,6 +349,7 @@ class HomeScreen extends StatelessWidget {
   Widget _buildCategoryCard(
     BuildContext context,
     String category,
+    int index,
     QuizProvider quizProvider,
   ) {
     final colors = [
@@ -356,8 +360,7 @@ class HomeScreen extends StatelessWidget {
       Colors.red,
       Colors.teal,
     ];
-    final index = category.hashCode.abs() % colors.length;
-    final color = colors[index];
+    final color = colors[index % colors.length];
 
     return GestureDetector(
       onTap: () {
@@ -369,10 +372,13 @@ class HomeScreen extends StatelessWidget {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [color.withOpacity(0.8), color.withOpacity(0.3)],
+            colors: [
+              color.withValues(alpha: 0.8),
+              color.withValues(alpha: 0.3),
+            ],
           ),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color.withOpacity(0.3)),
+          border: Border.all(color: color.withValues(alpha: 0.3)),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,

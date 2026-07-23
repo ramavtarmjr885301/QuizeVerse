@@ -15,6 +15,16 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
   @override
   Widget build(BuildContext context) {
     final userProvider = Provider.of<UserProvider>(context);
+    if (userProvider.user == null && !userProvider.isLoading) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (context.mounted) {
+          Navigator.of(
+            context,
+          ).pushNamedAndRemoveUntil('/login', (route) => false);
+        }
+      });
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -111,8 +121,8 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [
-                        Theme.of(context).primaryColor.withOpacity(0.3),
-                        Theme.of(context).primaryColor.withOpacity(0.1),
+                        Theme.of(context).primaryColor.withValues(alpha: 0.3),
+                        Theme.of(context).primaryColor.withValues(alpha: 0.1),
                       ],
                     ),
                     borderRadius: BorderRadius.circular(12),
@@ -193,8 +203,10 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                       ),
                       decoration: BoxDecoration(
                         color: isCurrentUser
-                            ? Theme.of(context).primaryColor.withOpacity(0.15)
-                            : Colors.white.withOpacity(0.03),
+                            ? Theme.of(
+                                context,
+                              ).primaryColor.withValues(alpha: 0.15)
+                            : Colors.white.withValues(alpha: 0.03),
                         borderRadius: BorderRadius.circular(12),
                         border: isCurrentUser
                             ? Border.all(color: Theme.of(context).primaryColor)
@@ -229,7 +241,9 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                           // Avatar
                           CircleAvatar(
                             radius: 18,
-                            backgroundColor: Colors.white.withOpacity(0.1),
+                            backgroundColor: Colors.white.withValues(
+                              alpha: 0.1,
+                            ),
                             child: Text(
                               avatarInitial,
                               style: const TextStyle(
@@ -278,7 +292,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                               vertical: 4,
                             ),
                             decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.05),
+                              color: Colors.white.withValues(alpha: 0.05),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Row(
@@ -330,7 +344,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
           width: 56,
           height: 56,
           decoration: BoxDecoration(
-            color: color.withOpacity(0.2),
+            color: color.withValues(alpha: 0.2),
             shape: BoxShape.circle,
             border: Border.all(color: color, width: 2),
           ),
@@ -368,7 +382,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
       case 3:
         return Colors.brown;
       default:
-        return Colors.white.withOpacity(0.1);
+        return Colors.white.withValues(alpha: 0.1);
     }
   }
 }

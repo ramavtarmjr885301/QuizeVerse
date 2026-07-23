@@ -4,7 +4,8 @@ import 'package:provider/provider.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:quizverse/screens/onboarding_screen.dart';
 import 'package:quizverse/screens/profile_screen.dart';
-import 'package:quizverse/scripts/bulk_upload_questions_batch2.dart';
+// import 'package:quizverse/scripts/bulk_upload_questions_batch2.dart';
+// import 'package:quizverse/scripts/bulk_upload_questions_batch6.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:quizverse/firebase_options.dart';
 import 'package:quizverse/providers/user_provider.dart';
@@ -21,8 +22,8 @@ void main() async {
 
   // Initialize Firebase
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  // await bulkUploadQuestionsBatch3();
-  await checkQuestionCount();
+  // await bulkUploadQuestionsBatch6();
+  // await checkQuestionCount();
 
   // Initialize Mobile Ads
   await MobileAds.instance.initialize();

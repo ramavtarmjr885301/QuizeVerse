@@ -82,7 +82,7 @@ class _TimerWidgetState extends State<TimerWidget> {
               height: 36,
               child: CircularProgressIndicator(
                 value: percentage,
-                backgroundColor: Colors.white.withOpacity(0.1),
+                backgroundColor: Colors.white.withValues(alpha: 0.1),
                 valueColor: AlwaysStoppedAnimation<Color>(color),
                 strokeWidth: 4,
               ),

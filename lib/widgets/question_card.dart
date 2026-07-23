@@ -24,9 +24,24 @@ class QuestionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListView.builder(
-      itemCount: question.options.length,
-      itemBuilder: (context, index) {
+    // return ListView.builder(
+    //   itemCount: question.options.length,
+    //   itemBuilder: (context, index) {
+    //     return Padding(
+    //       padding: const EdgeInsets.only(bottom: 12),
+    //       child: _buildOption(
+    //         context,
+    //         letter: _letterFor(index),
+    //         text: question.options[index],
+    //         index: index,
+    //       ),
+    //     );
+    //   },
+    // );
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: List.generate(question.options.length, (index) {
         return Padding(
           padding: const EdgeInsets.only(bottom: 12),
           child: _buildOption(
@@ -36,7 +51,7 @@ class QuestionCard extends StatelessWidget {
             index: index,
           ),
         );
-      },
+      }),
     );
   }
 
@@ -57,24 +72,24 @@ class QuestionCard extends StatelessWidget {
 
     if (showResult) {
       if (isCorrect) {
-        backgroundColor = Colors.green.withOpacity(0.2);
+        backgroundColor = Colors.green.withValues(alpha: 0.2);
         borderColor = Colors.green;
         letterColor = Colors.green;
       } else if (isSelected && !isCorrect) {
-        backgroundColor = Colors.red.withOpacity(0.2);
+        backgroundColor = Colors.red.withValues(alpha: 0.2);
         borderColor = Colors.red;
         letterColor = Colors.red;
       } else {
-        backgroundColor = Colors.white.withOpacity(0.05);
-        borderColor = Colors.white.withOpacity(0.1);
+        backgroundColor = Colors.white.withValues(alpha: 0.05);
+        borderColor = Colors.white.withValues(alpha: 0.1);
       }
     } else {
       if (isSelected) {
-        backgroundColor = Theme.of(context).primaryColor.withOpacity(0.2);
+        backgroundColor = Theme.of(context).primaryColor.withValues(alpha: 0.2);
         borderColor = Theme.of(context).primaryColor;
       } else {
-        backgroundColor = Colors.white.withOpacity(0.05);
-        borderColor = Colors.white.withOpacity(0.1);
+        backgroundColor = Colors.white.withValues(alpha: 0.05);
+        borderColor = Colors.white.withValues(alpha: 0.1);
       }
     }
 
@@ -104,8 +119,8 @@ class QuestionCard extends StatelessWidget {
                           ? Colors.green
                           : isSelected
                           ? Colors.red
-                          : Colors.white.withOpacity(0.1))
-                    : Colors.white.withOpacity(0.1),
+                          : Colors.white.withValues(alpha: 0.1))
+                    : Colors.white.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: Center(

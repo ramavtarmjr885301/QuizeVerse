@@ -10,7 +10,7 @@ class UserProvider extends ChangeNotifier {
 
   UserModel? _user;
   bool _isLoading = false;
-  bool _isGuest = true;
+  bool _isGuest = false;
 
   UserModel? get user => _user;
   bool get isLoading => _isLoading;
@@ -88,6 +88,42 @@ class UserProvider extends ChangeNotifier {
     }
   }
 
+  // Upgrade guest account to permanent Google account (preserves all data)
+  Future<bool> linkGuestToGoogle() async {
+    if (_user == null || !_isGuest) return false;
+
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      final credential = await FirebaseService.linkGuestToGoogle();
+      final firebaseUser = credential.user;
+
+      if (firebaseUser != null) {
+        // Update Firestore doc with the real name/email now available
+        await FirebaseService.updateUser(_user!.uid, {
+          'name': firebaseUser.displayName ?? _user!.name,
+          'email': firebaseUser.email ?? '',
+        });
+
+        final updatedUser = await FirebaseService.getUser(_user!.uid);
+        if (updatedUser != null) {
+          _user = updatedUser;
+          _isGuest = false; // no longer a guest — now a registered account
+          notifyListeners();
+        }
+      }
+
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _isLoading = false;
+      notifyListeners();
+      rethrow; // let UI show the specific error message
+    }
+  }
+
   // Sign in as Guest (Anonymous)
   Future<bool> signInAsGuest() async {
     _isLoading = true;
@@ -135,6 +171,23 @@ class UserProvider extends ChangeNotifier {
     _user = null;
     _isGuest = false;
     notifyListeners();
+  }
+
+  // Delete account permanently
+  Future<bool> deleteAccount() async {
+    if (_user == null) return false;
+
+    try {
+      await FirebaseService.deleteAccount(_user!.uid);
+      await prefs.remove('user_uid');
+      _user = null;
+      _isGuest = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      debugPrint('Delete account error: $e');
+      rethrow; // let UI show the specific error message
+    }
   }
 
   // Called after each answered question (coins + correct/wrong count)
