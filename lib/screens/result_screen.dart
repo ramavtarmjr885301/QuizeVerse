@@ -22,9 +22,10 @@ class _ResultScreenState extends State<ResultScreen> {
       final quizProvider = Provider.of<QuizProvider>(context, listen: false);
       final userProvider = Provider.of<UserProvider>(context, listen: false);
       final score = quizProvider.score;
+      final isDaily = quizProvider.isDailyChallenge;
 
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        userProvider.finishQuiz(score);
+        userProvider.finishQuiz(score, isDaily: isDaily);
       });
     }
   }

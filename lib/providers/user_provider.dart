@@ -219,7 +219,29 @@ class UserProvider extends ChangeNotifier {
 
   // NEW: Called ONCE when a full quiz session ends (on ResultScreen).
   // Updates gamesPlayed, highScore (if beaten), and streak — in one flow.
-  Future<void> finishQuiz(int finalScore) async {
+  // Future<void> finishQuiz(int finalScore) async {
+  //   if (_user == null) return;
+
+  //   final data = <String, dynamic>{
+  //     'gamesPlayed': _user!.gamesPlayed + 1,
+  //     if (finalScore > _user!.highScore) 'highScore': finalScore,
+  //   };
+
+  //   try {
+  //     await FirebaseService.updateUser(_user!.uid, data);
+  //     await FirebaseService.updateStreak(_user!.uid);
+
+  //     final updatedUser = await FirebaseService.getUser(_user!.uid);
+  //     if (updatedUser != null) {
+  //       _user = updatedUser;
+  //       notifyListeners();
+  //     }
+  //   } catch (e) {
+  //     debugPrint('Finish quiz error: $e');
+  //   }
+  // }
+
+  Future<void> finishQuiz(int finalScore, {bool isDaily = false}) async {
     if (_user == null) return;
 
     final data = <String, dynamic>{
@@ -230,6 +252,10 @@ class UserProvider extends ChangeNotifier {
     try {
       await FirebaseService.updateUser(_user!.uid, data);
       await FirebaseService.updateStreak(_user!.uid);
+
+      if (isDaily) {
+        await FirebaseService.markDailyChallengeCompleted(_user!.uid);
+      }
 
       final updatedUser = await FirebaseService.getUser(_user!.uid);
       if (updatedUser != null) {

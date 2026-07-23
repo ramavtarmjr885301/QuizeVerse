@@ -10,6 +10,7 @@ class UserModel {
   final DateTime? lastPlayedDate;
   final int streakDays;
   final List<String> categories;
+  final String? lastDailyChallengeDate;
 
   UserModel({
     required this.uid,
@@ -23,6 +24,7 @@ class UserModel {
     this.lastPlayedDate,
     this.streakDays = 0,
     this.categories = const [],
+    this.lastDailyChallengeDate,
   });
 
   // Empty user (for initial state)
@@ -44,6 +46,7 @@ class UserModel {
       lastPlayedDate: data['lastPlayedDate']?.toDate(),
       streakDays: data['streakDays'] ?? 0,
       categories: List<String>.from(data['categories'] ?? []),
+      lastDailyChallengeDate: data['lastDailyChallengeDate'],
     );
   }
 
@@ -60,6 +63,7 @@ class UserModel {
       'lastPlayedDate': lastPlayedDate,
       'streakDays': streakDays,
       'categories': categories,
+      'lastDailyChallengeDate': lastDailyChallengeDate,
     };
   }
 
@@ -76,6 +80,7 @@ class UserModel {
     DateTime? lastPlayedDate,
     int? streakDays,
     List<String>? categories,
+    String? lastDailyChallengeDate,
   }) {
     return UserModel(
       uid: uid ?? this.uid,
@@ -89,6 +94,8 @@ class UserModel {
       lastPlayedDate: lastPlayedDate ?? this.lastPlayedDate,
       streakDays: streakDays ?? this.streakDays,
       categories: categories ?? this.categories,
+      lastDailyChallengeDate:
+          lastDailyChallengeDate ?? this.lastDailyChallengeDate,
     );
   }
 
@@ -126,5 +133,14 @@ class UserModel {
       default:
         return '🌱 Beginner';
     }
+  }
+
+  bool get hasCompletedDailyChallengeToday {
+    if (lastDailyChallengeDate == null) return false;
+    final now = DateTime.now();
+    final month = now.month.toString().padLeft(2, '0');
+    final day = now.day.toString().padLeft(2, '0');
+    final todayStr = '${now.year}-$month-$day';
+    return lastDailyChallengeDate == todayStr;
   }
 }

@@ -17,10 +17,7 @@ class QuestionCard extends StatelessWidget {
     this.isTimerFinished = false,
   });
 
-  // FIX: dynamic letter generation instead of hardcoded 4-item list —
-  // won't crash if a question ever has more than 4 options
-  String _letterFor(int index) =>
-      String.fromCharCode(65 + index); // A, B, C, D, E...
+  String _letterFor(int index) => String.fromCharCode(65 + index);
 
   @override
   Widget build(BuildContext context) {
@@ -65,8 +62,8 @@ class QuestionCard extends StatelessWidget {
     bool isCorrect = index == question.correctAnswerIndex;
     bool showResult = isAnswered || isTimerFinished;
 
-    Color? backgroundColor;
-    Color? borderColor;
+    Color backgroundColor;
+    Color borderColor;
     Color textColor = Colors.white;
     Color letterColor = Colors.white;
 
@@ -103,10 +100,7 @@ class QuestionCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: backgroundColor,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: borderColor ?? Colors.transparent,
-            width: 2,
-          ),
+          border: Border.all(color: borderColor, width: 2),
         ),
         child: Row(
           children: [

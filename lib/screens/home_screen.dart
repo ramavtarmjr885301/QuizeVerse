@@ -23,9 +23,10 @@ class HomeScreen extends StatelessWidget {
     final user = userProvider.user;
     final hasName = user?.name != null && user!.name!.isNotEmpty;
     final avatarInitial = hasName
-        ? user!.name!.substring(0, 1).toUpperCase()
+        ? user.name!.substring(0, 1).toUpperCase()
         : 'G';
     final gamesPlayed = user?.gamesPlayed ?? 0;
+    final hasCompletedToday = user?.hasCompletedDailyChallengeToday ?? false;
 
     return Scaffold(
       body: SafeArea(
@@ -192,27 +193,38 @@ class HomeScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 12),
-
-                  // Daily Challenge
                   SizedBox(
                     width: double.infinity,
                     height: 60,
                     child: OutlinedButton.icon(
-                      onPressed: () {
-                        quizProvider.loadQuestions(daily: true);
-                        Navigator.pushNamed(context, '/quiz');
-                      },
-                      icon: const Icon(Icons.today, size: 30),
-                      label: const Text(
-                        'Daily Challenge',
-                        style: TextStyle(
+                      onPressed: hasCompletedToday
+                          ? null // disabled once completed
+                          : () {
+                              quizProvider.loadQuestions(daily: true);
+                              Navigator.pushNamed(context, '/quiz');
+                            },
+                      icon: Icon(
+                        hasCompletedToday ? Icons.check_circle : Icons.today,
+                        size: 30,
+                      ),
+                      label: Text(
+                        hasCompletedToday
+                            ? 'Daily Challenge Completed ✅'
+                            : 'Daily Challenge',
+                        style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.white,
-                        side: BorderSide(color: Theme.of(context).primaryColor),
+                        foregroundColor: hasCompletedToday
+                            ? Colors.grey
+                            : Colors.white,
+                        side: BorderSide(
+                          color: hasCompletedToday
+                              ? Colors.grey.withOpacity(0.3)
+                              : Theme.of(context).primaryColor,
+                        ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
                         ),

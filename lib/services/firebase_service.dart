@@ -1,20 +1,16 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import '../models/question_model.dart';
 import '../models/user_model.dart';
+import 'dart:math';
 
 class FirebaseService {
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   static final FirebaseAuth _auth = FirebaseAuth.instance;
-
-  // ==================== AUTH ====================
-
   static final GoogleSignIn _googleSignIn = GoogleSignIn();
-
-  // ==================== GOOGLE SIGN IN ====================
-
   static Future<UserCredential?> signInWithGoogle() async {
     try {
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
@@ -42,7 +38,6 @@ class FirebaseService {
       throw Exception('Google sign in failed: $e');
     }
   }
-  // ==================== LINK GUEST TO GOOGLE ====================
 
   static Future<UserCredential> linkGuestToGoogle() async {
     final currentUser = _auth.currentUser;
@@ -67,9 +62,6 @@ class FirebaseService {
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
-
-      // linkWithCredential keeps the SAME uid — existing Firestore doc,
-      // coins, streak, everything stays intact.
       final linkedCredential = await currentUser.linkWithCredential(credential);
       return linkedCredential;
     } on FirebaseAuthException catch (e) {
@@ -92,8 +84,6 @@ class FirebaseService {
   static Future<UserCredential> signInAnonymously() async {
     try {
       if (_auth.currentUser != null) {}
-
-      // ✅ Try anonymous sign in
       final result = await _auth.signInAnonymously();
       return result;
     } on FirebaseAuthException catch (e) {
@@ -122,15 +112,13 @@ class FirebaseService {
     return _auth.currentUser;
   }
 
-  // ==================== USERS ====================
-
   static Future<void> createUser(String uid, {String? name}) async {
     try {
       final user = UserModel(
         uid: uid,
         name: name ?? 'Player',
         email: '',
-        coins: 50, // Welcome bonus
+        coins: 50,
       );
       await _firestore.collection('users').doc(uid).set(user.toFirestore());
     } catch (e) {
@@ -138,17 +126,13 @@ class FirebaseService {
     }
   }
 
-  // ==================== DELETE ACCOUNT ====================
-
   static Future<void> deleteAccount(String uid) async {
     try {
       final user = _auth.currentUser;
       if (user == null) throw Exception('No user is currently signed in.');
 
-      // 1. Delete Firestore user document first
       await _firestore.collection('users').doc(uid).delete();
 
-      // 2. Delete the Firebase Auth account
       await user.delete();
     } on FirebaseAuthException catch (e) {
       if (e.code == 'requires-recent-login') {
@@ -180,8 +164,6 @@ class FirebaseService {
     }
   }
 
-  // ==================== QUESTIONS ====================
-
   static Future<List<QuestionModel>> getQuestions({int limit = 10}) async {
     try {
       final snapshot = await _firestore
@@ -197,7 +179,6 @@ class FirebaseService {
         return QuestionModel.fromFirestore(doc.data(), doc.id);
       }).toList();
     } catch (e) {
-      // If Firestore is empty, return sample questions
       return QuestionModel.getSampleQuestions();
     }
   }
@@ -240,8 +221,6 @@ class FirebaseService {
     }
   }
 
-  // ==================== LEADERBOARD ====================
-
   static Stream<QuerySnapshot> getLeaderboard() {
     return _firestore
         .collection('users')
@@ -264,33 +243,73 @@ class FirebaseService {
   }
   */
 
-  // ==================== DAILY CHALLENGE ====================
+  static String _todayDateString() {
+    final now = DateTime.now();
+    final month = now.month.toString().padLeft(2, '0');
+    final day = now.day.toString().padLeft(2, '0');
+    return '${now.year}-$month-$day';
+  }
 
   static Future<List<QuestionModel>> getDailyQuestions() async {
+    final dateStr = _todayDateString();
+    final dailyDocRef = _firestore.collection('dailyQuestions').doc(dateStr);
+
     try {
-      final today = DateTime.now();
-      final dateStr = '${today.year}-${today.month}-${today.day}';
+      final questions = await _firestore.runTransaction<List<QuestionModel>>((
+        transaction,
+      ) async {
+        final snapshot = await transaction.get(dailyDocRef);
 
-      final snapshot = await _firestore
-          .collection('dailyQuestions')
-          .doc(dateStr)
-          .collection('questions')
-          .limit(10)
-          .get();
+        if (snapshot.exists && snapshot.data()?['questions'] != null) {
+          final rawList = List<Map<String, dynamic>>.from(
+            snapshot.data()!['questions'],
+          );
+          return rawList
+              .map((q) => QuestionModel.fromFirestore(q, q['id'] ?? ''))
+              .toList();
+        }
 
-      if (snapshot.docs.isEmpty) {
-        return QuestionModel.getSampleQuestions();
-      }
+        final allQuestionsSnapshot = await _firestore
+            .collection('questions')
+            .get();
 
-      return snapshot.docs.map((doc) {
-        return QuestionModel.fromFirestore(doc.data(), doc.id);
-      }).toList();
+        if (allQuestionsSnapshot.docs.isEmpty) {
+          return QuestionModel.getSampleQuestions();
+        }
+
+        final pool = allQuestionsSnapshot.docs
+            .map((doc) => QuestionModel.fromFirestore(doc.data(), doc.id))
+            .toList();
+        pool.shuffle(Random());
+        final selected = pool.take(10).toList();
+
+        final toStore = selected
+            .map((q) => {...q.toFirestore(), 'id': q.id})
+            .toList();
+
+        transaction.set(dailyDocRef, {
+          'questions': toStore,
+          'generatedAt': FieldValue.serverTimestamp(),
+        });
+
+        return selected;
+      });
+
+      return questions;
     } catch (e) {
       return QuestionModel.getSampleQuestions();
     }
   }
 
-  // ==================== STREAK CHECK ====================
+  static Future<void> markDailyChallengeCompleted(String uid) async {
+    try {
+      await _firestore.collection('users').doc(uid).update({
+        'lastDailyChallengeDate': _todayDateString(),
+      });
+    } catch (e) {
+      debugPrint('Mark daily challenge completed error: $e');
+    }
+  }
 
   static Future<bool> updateStreak(String uid) async {
     try {
@@ -307,12 +326,11 @@ class FirebaseService {
       } else {
         final difference = today.difference(lastPlayed).inDays;
         if (difference == 0) {
-          // Already played today
           return true;
         } else if (difference == 1) {
           newStreak += 1;
         } else {
-          newStreak = 1; // Reset streak
+          newStreak = 1;
         }
       }
 
@@ -324,10 +342,7 @@ class FirebaseService {
     }
   }
 
-  // ==================== CHECK AUTH STATUS ====================
-
   static bool isAnonymousAuthEnabled() {
-    // This is a helper method - actual check happens in signInAnonymously
     return true;
   }
 }
