@@ -289,4 +289,19 @@ class UserProvider extends ChangeNotifier {
 
     return success;
   }
+
+  Future<void> addBonusCoins(int amount) async {
+    if (_user == null) return;
+
+    try {
+      await FirebaseService.addCoins(_user!.uid, amount);
+      final updatedUser = await FirebaseService.getUser(_user!.uid);
+      if (updatedUser != null) {
+        _user = updatedUser;
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('Add bonus coins error: $e');
+    }
+  }
 }

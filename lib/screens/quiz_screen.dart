@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:quizverse/services/ad_service.dart';
 import '../providers/quiz_provider.dart';
 import '../providers/user_provider.dart';
 import '../widgets/question_card.dart';
@@ -53,6 +54,12 @@ class _QuizScreenState extends State<QuizScreen> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    AdService.loadInterstitialAd();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final quizProvider = Provider.of<QuizProvider>(context);
     final userProvider = Provider.of<UserProvider>(context);
@@ -67,8 +74,22 @@ class _QuizScreenState extends State<QuizScreen> {
     if (quizProvider.isQuizComplete) {
       if (!_hasNavigatedToResult) {
         _hasNavigatedToResult = true;
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) {
+        WidgetsBinding.instance.addPostFrameCallback((_) async {
+          if (!mounted) return;
+
+          final shouldShowAd = await AdService.shouldShowInterstitial();
+
+          if (!mounted) return;
+
+          if (shouldShowAd) {
+            AdService.showInterstitialAd(
+              onAdClosed: () {
+                if (mounted) {
+                  Navigator.pushReplacementNamed(context, '/result');
+                }
+              },
+            );
+          } else {
             Navigator.pushReplacementNamed(context, '/result');
           }
         });

@@ -363,6 +363,17 @@ class FirebaseService {
     }
   }
 
+  static Future<void> addCoins(String uid, int amount) async {
+    try {
+      await _firestore.collection('users').doc(uid).update({
+        'coins': FieldValue.increment(amount),
+        'totalCoinsEarned': FieldValue.increment(amount),
+      });
+    } catch (e) {
+      throw Exception('Failed to add coins: $e');
+    }
+  }
+
   static bool isAnonymousAuthEnabled() {
     return true;
   }

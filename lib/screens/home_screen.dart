@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:quizverse/widgets/rewarded_ad_button.dart';
 import '../providers/user_provider.dart';
 import '../providers/quiz_provider.dart';
 
@@ -165,76 +166,45 @@ class HomeScreen extends StatelessWidget {
             // ========== QUICK PLAY BUTTONS ==========
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Column(
+              child: Row(
                 children: [
-                  // Quick Play
-                  SizedBox(
-                    width: double.infinity,
-                    height: 60,
-                    child: ElevatedButton.icon(
-                      onPressed: () {
+                  Expanded(
+                    child: _buildActionCard(
+                      context,
+                      icon: Icons.play_arrow_rounded,
+                      label: 'Quick Play',
+                      color: Theme.of(context).primaryColor,
+                      onTap: () {
                         quizProvider.loadQuestions();
                         Navigator.pushNamed(context, '/quiz');
                       },
-                      icon: const Icon(Icons.play_arrow, size: 30),
-                      label: const Text(
-                        'Quick Play',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Theme.of(context).primaryColor,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                      ),
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 60,
-                    child: OutlinedButton.icon(
-                      onPressed: hasCompletedToday
-                          ? null // disabled once completed
-                          : () {
-                              quizProvider.loadQuestions(daily: true);
-                              Navigator.pushNamed(context, '/quiz');
-                            },
-                      icon: Icon(
-                        hasCompletedToday ? Icons.check_circle : Icons.today,
-                        size: 30,
-                      ),
-                      label: Text(
-                        hasCompletedToday
-                            ? 'Daily Challenge Completed ✅'
-                            : 'Daily Challenge',
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: hasCompletedToday
-                            ? Colors.grey
-                            : Colors.white,
-                        side: BorderSide(
-                          color: hasCompletedToday
-                              ? Colors.grey.withOpacity(0.3)
-                              : Theme.of(context).primaryColor,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                      ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _buildActionCard(
+                      context,
+                      icon: hasCompletedToday
+                          ? Icons.check_circle
+                          : Icons.today_rounded,
+                      label: hasCompletedToday
+                          ? 'Completed ✅'
+                          : 'Daily Challenge',
+                      color: hasCompletedToday
+                          ? Colors.grey
+                          : Colors.blueAccent,
+                      isDisabled: hasCompletedToday,
+                      onTap: () {
+                        quizProvider.loadQuestions(daily: true);
+                        Navigator.pushNamed(context, '/quiz');
+                      },
                     ),
                   ),
+                  const SizedBox(width: 10),
+                  const Expanded(child: RewardedAdButton()),
                 ],
               ),
             ),
-
             const SizedBox(height: 16),
 
             // ========== CATEGORIES ==========
@@ -351,6 +321,63 @@ class HomeScreen extends StatelessWidget {
             Text(
               label,
               style: const TextStyle(color: Colors.white54, fontSize: 10),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActionCard(
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+    bool isDisabled = false,
+  }) {
+    return GestureDetector(
+      onTap: isDisabled ? null : onTap,
+      child: Container(
+        height: 90,
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: isDisabled
+                ? [
+                    Colors.grey.withValues(alpha: 0.15),
+                    Colors.grey.withValues(alpha: 0.05),
+                  ]
+                : [color.withValues(alpha: 0.8), color.withValues(alpha: 0.3)],
+          ),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: isDisabled
+                ? Colors.grey.withValues(alpha: 0.2)
+                : color.withValues(alpha: 0.3),
+          ),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              color: isDisabled ? Colors.white38 : Colors.white,
+              size: 26,
+            ),
+            const SizedBox(height: 6),
+            Text(
+              label,
+              style: TextStyle(
+                color: isDisabled ? Colors.white38 : Colors.white,
+                fontWeight: FontWeight.w600,
+                fontSize: 11,
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),
