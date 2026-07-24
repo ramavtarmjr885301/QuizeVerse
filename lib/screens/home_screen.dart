@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:quizverse/data/avatar_catalog.dart';
 import 'package:quizverse/widgets/rewarded_ad_button.dart';
 import '../providers/user_provider.dart';
 import '../providers/quiz_provider.dart';
@@ -51,16 +52,65 @@ class HomeScreen extends StatelessWidget {
               child: Row(
                 children: [
                   // Avatar
-                  CircleAvatar(
-                    radius: 28,
-                    backgroundColor: Colors.white.withValues(alpha: 0.2),
-                    child: Text(
-                      avatarInitial,
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
+                  // CircleAvatar(
+                  //   radius: 28,
+                  //   backgroundColor: Colors.white.withValues(alpha: 0.2),
+                  //   child: Text(
+                  //     avatarInitial,
+                  //     style: const TextStyle(
+                  //       fontSize: 24,
+                  //       fontWeight: FontWeight.bold,
+                  //       color: Colors.white,
+                  //     ),
+                  //   ),
+                  // ),
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.pushNamed(context, '/avatar-shop');
+                    },
+                    child: Stack(
+                      children: [
+                        CircleAvatar(
+                          radius: 28,
+                          backgroundColor: Colors.white.withValues(alpha: 0.2),
+                          child: user?.selectedAvatar != null
+                              ? Text(
+                                  AvatarCatalog.byId(
+                                        user!.selectedAvatar!,
+                                      )?.emoji ??
+                                      avatarInitial,
+                                  style: const TextStyle(fontSize: 26),
+                                )
+                              : Text(
+                                  avatarInitial,
+                                  style: const TextStyle(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                        ),
+                        Positioned(
+                          bottom: 0,
+                          right: 0,
+                          child: Container(
+                            padding: const EdgeInsets.all(2),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).primaryColor,
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: Colors.black,
+                                width: 1.5,
+                              ),
+                            ),
+                            child: const Icon(
+                              Icons.edit,
+                              size: 10,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   const SizedBox(width: 16),

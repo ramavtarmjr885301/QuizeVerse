@@ -376,6 +376,54 @@ class FirebaseService {
     }
   }
 
+  // Unlock an avatar — transaction-safe (checks balance, deducts coins, adds to unlockedAvatars)
+  static Future<bool> unlockAvatar(
+    String uid,
+    String avatarId,
+    int cost,
+  ) async {
+    final docRef = _firestore.collection('users').doc(uid);
+
+    try {
+      return await _firestore.runTransaction<bool>((transaction) async {
+        final snapshot = await transaction.get(docRef);
+        final currentCoins = (snapshot.data()?['coins'] ?? 0) as int;
+        final unlocked = List<String>.from(
+          snapshot.data()?['unlockedAvatars'] ?? [],
+        );
+
+        if (unlocked.contains(avatarId)) {
+          return true; // already unlocked, nothing to do
+        }
+
+        if (currentCoins < cost) {
+          return false; // insufficient balance
+        }
+
+        transaction.update(docRef, {
+          'coins': currentCoins - cost,
+          'unlockedAvatars': FieldValue.arrayUnion([avatarId]),
+        });
+
+        return true;
+      });
+    } catch (e) {
+      debugPrint('Unlock avatar error: $e');
+      return false;
+    }
+  }
+
+  // Set the currently selected avatar (must already be unlocked, checked in UI)
+  static Future<void> selectAvatar(String uid, String avatarId) async {
+    try {
+      await _firestore.collection('users').doc(uid).update({
+        'selectedAvatar': avatarId,
+      });
+    } catch (e) {
+      throw Exception('Failed to select avatar: $e');
+    }
+  }
+
   static bool isAnonymousAuthEnabled() {
     return true;
   }

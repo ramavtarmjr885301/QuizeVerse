@@ -304,4 +304,39 @@ class UserProvider extends ChangeNotifier {
       debugPrint('Add bonus coins error: $e');
     }
   }
+
+  Future<bool> unlockAvatar(String avatarId, int cost) async {
+    if (_user == null) return false;
+
+    final success = await FirebaseService.unlockAvatar(
+      _user!.uid,
+      avatarId,
+      cost,
+    );
+
+    if (success) {
+      final updatedUser = await FirebaseService.getUser(_user!.uid);
+      if (updatedUser != null) {
+        _user = updatedUser;
+        notifyListeners();
+      }
+    }
+
+    return success;
+  }
+
+  Future<void> selectAvatar(String avatarId) async {
+    if (_user == null) return;
+
+    try {
+      await FirebaseService.selectAvatar(_user!.uid, avatarId);
+      final updatedUser = await FirebaseService.getUser(_user!.uid);
+      if (updatedUser != null) {
+        _user = updatedUser;
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('Select avatar error: $e');
+    }
+  }
 }

@@ -14,6 +14,8 @@ class UserModel {
   final DateTime? adsRemovedUntil;
   final List<String> categories;
   final String? lastDailyChallengeDate;
+  final List<String> unlockedAvatars;
+  final String? selectedAvatar;
 
   UserModel({
     required this.uid,
@@ -31,6 +33,8 @@ class UserModel {
     this.adsRemovedUntil,
     this.categories = const [],
     this.lastDailyChallengeDate,
+    this.unlockedAvatars = const [],
+    this.selectedAvatar,
   });
 
   factory UserModel.empty() {
@@ -54,6 +58,8 @@ class UserModel {
       adsRemovedUntil: data['adsRemovedUntil']?.toDate(),
       categories: List<String>.from(data['categories'] ?? []),
       lastDailyChallengeDate: data['lastDailyChallengeDate'],
+      unlockedAvatars: List<String>.from(data['unlockedAvatars'] ?? []),
+      selectedAvatar: data['selectedAvatar'],
     );
   }
 
@@ -73,6 +79,8 @@ class UserModel {
       'adsRemovedUntil': adsRemovedUntil,
       'categories': categories,
       'lastDailyChallengeDate': lastDailyChallengeDate,
+      'unlockedAvatars': unlockedAvatars,
+      'selectedAvatar': selectedAvatar,
     };
   }
 
@@ -92,6 +100,8 @@ class UserModel {
     DateTime? adsRemovedUntil,
     List<String>? categories,
     String? lastDailyChallengeDate,
+    List<String>? unlockedAvatars,
+    String? selectedAvatar,
   }) {
     return UserModel(
       uid: uid ?? this.uid,
@@ -110,6 +120,8 @@ class UserModel {
       categories: categories ?? this.categories,
       lastDailyChallengeDate:
           lastDailyChallengeDate ?? this.lastDailyChallengeDate,
+      unlockedAvatars: unlockedAvatars ?? this.unlockedAvatars,
+      selectedAvatar: selectedAvatar ?? this.selectedAvatar,
     );
   }
 

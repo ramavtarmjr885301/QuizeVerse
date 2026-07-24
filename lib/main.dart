@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:quizverse/screens/avatar_shop_screen.dart';
 import 'package:quizverse/screens/onboarding_screen.dart';
 import 'package:quizverse/screens/profile_screen.dart';
 // import 'package:quizverse/scripts/bulk_upload_questions_batch2.dart';
@@ -119,6 +120,7 @@ class QuizVerseApp extends StatelessWidget {
           '/result': (context) => const ResultScreen(),
           '/leaderboard': (context) => const LeaderboardScreen(),
           '/profile': (context) => const ProfileScreen(),
+          '/avatar-shop': (context) => const AvatarShopScreen(),
         },
       ),
     );
