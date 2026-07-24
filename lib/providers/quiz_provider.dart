@@ -12,6 +12,10 @@
 //   bool _isDailyChallenge = false;
 //   String? _selectedCategory;
 
+//   // NEW — hint state
+//   List<int> _hiddenOptionIndices = [];
+//   bool _hintUsedForCurrentQuestion = false;
+
 //   List<QuestionModel> get questions => _questions;
 //   List<QuestionModel> get currentQuestions => _currentQuestions;
 //   int get currentIndex => _currentIndex;
@@ -20,6 +24,10 @@
 //   bool get isLoading => _isLoading;
 //   bool get isDailyChallenge => _isDailyChallenge;
 //   String? get selectedCategory => _selectedCategory;
+
+//   // NEW — hint getters
+//   List<int> get hiddenOptionIndices => _hiddenOptionIndices;
+//   bool get hintUsedForCurrentQuestion => _hintUsedForCurrentQuestion;
 
 //   QuestionModel? get currentQuestion {
 //     if (_currentQuestions.isEmpty ||
@@ -33,7 +41,28 @@
 //   bool get isLastQuestion => _currentIndex >= _currentQuestions.length - 1;
 //   bool get isQuizComplete => _currentIndex >= _currentQuestions.length;
 
-//   // Load questions from Firebase
+//   // NEW — apply 50-50 hint: hides 2 random WRONG options for current question
+//   void applyHint() {
+//     if (currentQuestion == null || _hintUsedForCurrentQuestion) return;
+
+//     final correctIndex = currentQuestion!.correctAnswerIndex;
+//     final wrongIndices = List.generate(
+//       currentQuestion!.options.length,
+//       (i) => i,
+//     ).where((i) => i != correctIndex).toList()..shuffle();
+
+//     // Hide up to 2 wrong options (handles edge case of <3 options safely)
+//     _hiddenOptionIndices = wrongIndices.take(2).toList();
+//     _hintUsedForCurrentQuestion = true;
+//     notifyListeners();
+//   }
+
+//   // NEW — reset hint state, call this whenever question changes
+//   void _resetHintState() {
+//     _hiddenOptionIndices = [];
+//     _hintUsedForCurrentQuestion = false;
+//   }
+
 //   Future<void> loadQuestions({String? category, bool daily = false}) async {
 //     _isLoading = true;
 //     _isDailyChallenge = daily;
@@ -55,27 +84,25 @@
 
 //       _questions = loadedQuestions;
 //       _currentQuestions = List.from(loadedQuestions)..shuffle();
-//       _currentQuestions = _currentQuestions
-//           .take(10)
-//           .toList(); // Max 10 questions per quiz
+//       _currentQuestions = _currentQuestions.take(10).toList();
 //       _currentIndex = 0;
 //       _score = 0;
 //       _coinsEarned = 0;
+//       _resetHintState(); // NEW
 //     } catch (e) {
 //       debugPrint('Load questions error: $e');
-//       // Fallback to sample questions
 //       _currentQuestions = QuestionModel.getSampleQuestions()..shuffle();
 //       _currentQuestions = _currentQuestions.take(5).toList();
 //       _currentIndex = 0;
 //       _score = 0;
 //       _coinsEarned = 0;
+//       _resetHintState(); // NEW
 //     }
 
 //     _isLoading = false;
 //     notifyListeners();
 //   }
 
-//   // Answer current question — computes correctness, does NOT advance index
 //   bool answerQuestion(int selectedIndex) {
 //     if (currentQuestion == null) return false;
 
@@ -90,31 +117,30 @@
 //     return isCorrect;
 //   }
 
-//   // NEW: advances to next question — call this AFTER showing the result
 //   void moveToNextQuestion() {
 //     _currentIndex += 1;
+//     _resetHintState(); // NEW
 //     notifyListeners();
 //   }
 
-//   // Skip question (no score)
 //   void skipQuestion() {
 //     if (_currentIndex < _currentQuestions.length) {
 //       _currentIndex += 1;
+//       _resetHintState(); // NEW
 //       notifyListeners();
 //     }
 //   }
 
-//   // Reset quiz
 //   void resetQuiz() {
 //     _currentIndex = 0;
 //     _score = 0;
 //     _coinsEarned = 0;
 //     _currentQuestions = List.from(_questions)..shuffle();
 //     _currentQuestions = _currentQuestions.take(10).toList();
+//     _resetHintState(); // NEW
 //     notifyListeners();
 //   }
 
-//   // Get category list (for home screen)
 //   List<String> getCategories() {
 //     final categories = _questions.map((q) => q.category).toSet().toList();
 //     if (categories.isEmpty) {
@@ -125,10 +151,16 @@
 // }
 
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/question_model.dart';
 import '../services/firebase_service.dart';
+import '../services/question_cache_service.dart';
 
 class QuizProvider extends ChangeNotifier {
+  final SharedPreferences prefs; // NEW
+
+  QuizProvider({required this.prefs}); // NEW
+
   List<QuestionModel> _questions = [];
   List<QuestionModel> _currentQuestions = [];
   int _currentIndex = 0;
@@ -138,7 +170,6 @@ class QuizProvider extends ChangeNotifier {
   bool _isDailyChallenge = false;
   String? _selectedCategory;
 
-  // NEW — hint state
   List<int> _hiddenOptionIndices = [];
   bool _hintUsedForCurrentQuestion = false;
 
@@ -150,8 +181,6 @@ class QuizProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   bool get isDailyChallenge => _isDailyChallenge;
   String? get selectedCategory => _selectedCategory;
-
-  // NEW — hint getters
   List<int> get hiddenOptionIndices => _hiddenOptionIndices;
   bool get hintUsedForCurrentQuestion => _hintUsedForCurrentQuestion;
 
@@ -167,7 +196,6 @@ class QuizProvider extends ChangeNotifier {
   bool get isLastQuestion => _currentIndex >= _currentQuestions.length - 1;
   bool get isQuizComplete => _currentIndex >= _currentQuestions.length;
 
-  // NEW — apply 50-50 hint: hides 2 random WRONG options for current question
   void applyHint() {
     if (currentQuestion == null || _hintUsedForCurrentQuestion) return;
 
@@ -177,18 +205,17 @@ class QuizProvider extends ChangeNotifier {
       (i) => i,
     ).where((i) => i != correctIndex).toList()..shuffle();
 
-    // Hide up to 2 wrong options (handles edge case of <3 options safely)
     _hiddenOptionIndices = wrongIndices.take(2).toList();
     _hintUsedForCurrentQuestion = true;
     notifyListeners();
   }
 
-  // NEW — reset hint state, call this whenever question changes
   void _resetHintState() {
     _hiddenOptionIndices = [];
     _hintUsedForCurrentQuestion = false;
   }
 
+  // Load questions — cache-first, falls back to Firestore on miss/expiry
   Future<void> loadQuestions({String? category, bool daily = false}) async {
     _isLoading = true;
     _isDailyChallenge = daily;
@@ -196,25 +223,43 @@ class QuizProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      List<QuestionModel> loadedQuestions;
-
       if (daily) {
-        loadedQuestions = await FirebaseService.getDailyQuestions();
-      } else if (category != null && category.isNotEmpty) {
-        loadedQuestions = await FirebaseService.getQuestionsByCategory(
-          category,
-        );
+        // Daily questions are already server-cached per date (see
+        // FirebaseService.getDailyQuestions), so no extra local caching needed —
+        // it's already a single efficient read+possible-write per day.
+        final loadedQuestions = await FirebaseService.getDailyQuestions();
+        _questions = loadedQuestions;
+        _currentQuestions = loadedQuestions.take(10).toList();
       } else {
-        loadedQuestions = await FirebaseService.getQuestions();
+        final cacheKey = (category != null && category.isNotEmpty)
+            ? category
+            : 'all';
+
+        // 1) Try local cache first — zero Firestore reads on cache hit
+        var pool = QuestionCacheService.getCached(prefs, cacheKey);
+
+        // 2) Cache miss or expired — fetch full category pool from Firestore
+        if (pool == null || pool.isEmpty) {
+          if (category != null && category.isNotEmpty) {
+            pool = await FirebaseService.getQuestionsByCategory(category);
+          } else {
+            pool = await FirebaseService.getQuestions();
+          }
+
+          if (pool.isNotEmpty) {
+            await QuestionCacheService.setCache(prefs, cacheKey, pool);
+          }
+        }
+
+        _questions = pool;
+        _currentQuestions = List.from(pool)..shuffle();
+        _currentQuestions = _currentQuestions.take(10).toList();
       }
 
-      _questions = loadedQuestions;
-      _currentQuestions = List.from(loadedQuestions)..shuffle();
-      _currentQuestions = _currentQuestions.take(10).toList();
       _currentIndex = 0;
       _score = 0;
       _coinsEarned = 0;
-      _resetHintState(); // NEW
+      _resetHintState();
     } catch (e) {
       debugPrint('Load questions error: $e');
       _currentQuestions = QuestionModel.getSampleQuestions()..shuffle();
@@ -222,7 +267,7 @@ class QuizProvider extends ChangeNotifier {
       _currentIndex = 0;
       _score = 0;
       _coinsEarned = 0;
-      _resetHintState(); // NEW
+      _resetHintState();
     }
 
     _isLoading = false;
@@ -245,14 +290,14 @@ class QuizProvider extends ChangeNotifier {
 
   void moveToNextQuestion() {
     _currentIndex += 1;
-    _resetHintState(); // NEW
+    _resetHintState();
     notifyListeners();
   }
 
   void skipQuestion() {
     if (_currentIndex < _currentQuestions.length) {
       _currentIndex += 1;
-      _resetHintState(); // NEW
+      _resetHintState();
       notifyListeners();
     }
   }
@@ -263,7 +308,7 @@ class QuizProvider extends ChangeNotifier {
     _coinsEarned = 0;
     _currentQuestions = List.from(_questions)..shuffle();
     _currentQuestions = _currentQuestions.take(10).toList();
-    _resetHintState(); // NEW
+    _resetHintState();
     notifyListeners();
   }
 

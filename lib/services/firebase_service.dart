@@ -164,7 +164,8 @@ class FirebaseService {
     }
   }
 
-  static Future<List<QuestionModel>> getQuestions({int limit = 10}) async {
+  static Future<List<QuestionModel>> getQuestions({int limit = 1000}) async {
+    // int limit =1000 is just a safety cap — actual fetch happens once per 24h via cache layer
     try {
       final snapshot = await _firestore
           .collection('questions')
@@ -185,7 +186,8 @@ class FirebaseService {
 
   static Future<List<QuestionModel>> getQuestionsByCategory(
     String category, {
-    int limit = 10,
+    int limit =
+        1000, // Safety cap only — actual fetch happens once per 24h via cache layer
   }) async {
     try {
       final snapshot = await _firestore

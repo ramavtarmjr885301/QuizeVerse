@@ -6,3 +6,44 @@ Cosmetic unlocks — avatar, themes, badges
 Leaderboard entry / tournaments — coins se paid tournaments join karna
 Streak freeze — agar streak system hai (jo dikh raha hai streakDays field me), to coins se ek din ka streak "freeze" kharido (Duolingo jaisa)
 Convert to real rewards — kuch apps me coins ko gift cards/vouchers se redeem karte hain (zyada complex, payment/legal involve hota hai)
+
+
+
+
+
+other code
+Structure/format bilkul sahi hai, upload kar sakte ho. Bas do cheezein must-do hain:
+
+Duplicate-prevention marker add karo (upar wala code) — warna galti se dobara chalne par duplicate questions ban jaayenge
+Category naam exact match verify karo har batch me
+
+Future<void> bulkUploadQuestionsBatch1() async {
+  final firestore = FirebaseFirestore.instance;
+
+  // Duplicate-prevention: check if this exact batch was already uploaded
+  final marker = await firestore.collection('_migrations').doc('batch1_uploaded').get();
+  if (marker.exists) {
+    debugPrint('⚠️ Batch 1 already uploaded, skipping.');
+    return;
+  }
+
+  final batch = firestore.batch();
+  final collection = firestore.collection('questions');
+
+  for (final q in _batch1Questions) {
+    final docRef = collection.doc();
+    batch.set(docRef, q);
+  }
+
+  batch.set(firestore.collection('_migrations').doc('batch1_uploaded'), {
+    'uploadedAt': FieldValue.serverTimestamp(),
+    'count': _batch1Questions.length,
+  });
+
+  try {
+    await batch.commit();
+    debugPrint('✅ Uploaded ${_batch1Questions.length} questions (Batch 1)');
+  } catch (e) {
+    debugPrint('❌ Bulk upload failed: $e');
+  }
+}
