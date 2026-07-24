@@ -138,6 +138,18 @@ class HomeScreen extends StatelessWidget {
                       ],
                     ),
                   ),
+                  // NEW: Theme Shop entry point (palette icon)
+                  IconButton(
+                    onPressed: () {
+                      Navigator.pushNamed(context, '/theme-shop');
+                    },
+                    icon: const Icon(
+                      Icons.palette_outlined,
+                      color: Colors.white,
+                      size: 22,
+                    ),
+                    tooltip: 'Themes',
+                  ),
                   // Coins
                   Container(
                     padding: const EdgeInsets.symmetric(

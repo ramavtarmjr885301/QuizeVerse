@@ -424,6 +424,48 @@ class FirebaseService {
     }
   }
 
+  static Future<bool> unlockTheme(String uid, String themeId, int cost) async {
+    final docRef = _firestore.collection('users').doc(uid);
+
+    try {
+      return await _firestore.runTransaction<bool>((transaction) async {
+        final snapshot = await transaction.get(docRef);
+        final currentCoins = (snapshot.data()?['coins'] ?? 0) as int;
+        final unlocked = List<String>.from(
+          snapshot.data()?['unlockedThemes'] ?? [],
+        );
+
+        if (unlocked.contains(themeId)) {
+          return true;
+        }
+
+        if (currentCoins < cost) {
+          return false;
+        }
+
+        transaction.update(docRef, {
+          'coins': currentCoins - cost,
+          'unlockedThemes': FieldValue.arrayUnion([themeId]),
+        });
+
+        return true;
+      });
+    } catch (e) {
+      debugPrint('Unlock theme error: $e');
+      return false;
+    }
+  }
+
+  static Future<void> selectTheme(String uid, String themeId) async {
+    try {
+      await _firestore.collection('users').doc(uid).update({
+        'selectedTheme': themeId,
+      });
+    } catch (e) {
+      throw Exception('Failed to select theme: $e');
+    }
+  }
+
   static bool isAnonymousAuthEnabled() {
     return true;
   }

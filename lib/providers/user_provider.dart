@@ -339,4 +339,39 @@ class UserProvider extends ChangeNotifier {
       debugPrint('Select avatar error: $e');
     }
   }
+
+  Future<bool> unlockTheme(String themeId, int cost) async {
+    if (_user == null) return false;
+
+    final success = await FirebaseService.unlockTheme(
+      _user!.uid,
+      themeId,
+      cost,
+    );
+
+    if (success) {
+      final updatedUser = await FirebaseService.getUser(_user!.uid);
+      if (updatedUser != null) {
+        _user = updatedUser;
+        notifyListeners();
+      }
+    }
+
+    return success;
+  }
+
+  Future<void> selectTheme(String themeId) async {
+    if (_user == null) return;
+
+    try {
+      await FirebaseService.selectTheme(_user!.uid, themeId);
+      final updatedUser = await FirebaseService.getUser(_user!.uid);
+      if (updatedUser != null) {
+        _user = updatedUser;
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('Select theme error: $e');
+    }
+  }
 }

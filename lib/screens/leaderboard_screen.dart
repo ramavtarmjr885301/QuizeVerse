@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
+import 'package:quizverse/data/avatar_catalog.dart';
 import '../providers/user_provider.dart';
 import '../services/firebase_service.dart';
 
@@ -192,6 +193,10 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                         .substring(0, 1)
                         .toUpperCase();
 
+                    // NEW — show unlocked/selected avatar emoji if this user has one set
+                    final avatarId = userData['selectedAvatar'] as String?;
+                    final avatarEmoji = AvatarCatalog.byId(avatarId)?.emoji;
+
                     return Container(
                       margin: const EdgeInsets.symmetric(
                         horizontal: 16,
@@ -238,20 +243,25 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
 
                           const SizedBox(width: 12),
 
-                          // Avatar
+                          // Avatar — CHANGED: shows emoji if user has one selected, else initial
                           CircleAvatar(
                             radius: 18,
                             backgroundColor: Colors.white.withValues(
                               alpha: 0.1,
                             ),
-                            child: Text(
-                              avatarInitial,
-                              style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                            ),
+                            child: avatarEmoji != null
+                                ? Text(
+                                    avatarEmoji,
+                                    style: const TextStyle(fontSize: 16),
+                                  )
+                                : Text(
+                                    avatarInitial,
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                  ),
                           ),
 
                           const SizedBox(width: 12),
@@ -338,22 +348,41 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     final name = (rawName != null && rawName.isNotEmpty) ? rawName : 'Player';
     final score = data['highScore'] ?? 0;
 
+    // NEW — show unlocked/selected avatar emoji if available, else the rank medal
+    final avatarId = data['selectedAvatar'] as String?;
+    final avatarEmoji = AvatarCatalog.byId(avatarId)?.emoji;
+
     return Column(
       children: [
-        Container(
-          width: 56,
-          height: 56,
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.2),
-            shape: BoxShape.circle,
-            border: Border.all(color: color, width: 2),
-          ),
-          child: Center(
-            child: Text(
-              rank == 1 ? '👑' : emoji,
-              style: const TextStyle(fontSize: 28),
+        Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.2),
+                shape: BoxShape.circle,
+                border: Border.all(color: color, width: 2),
+              ),
+              child: Center(
+                child: Text(
+                  avatarEmoji ?? (rank == 1 ? '👑' : emoji),
+                  style: const TextStyle(fontSize: 28),
+                ),
+              ),
             ),
-          ),
+            // Small rank-medal badge in the corner when an avatar is shown
+            if (avatarEmoji != null)
+              Positioned(
+                bottom: -2,
+                right: -2,
+                child: Text(
+                  rank == 1 ? '👑' : emoji,
+                  style: const TextStyle(fontSize: 18),
+                ),
+              ),
+          ],
         ),
         const SizedBox(height: 4),
         Text(

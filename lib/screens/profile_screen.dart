@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/user_provider.dart';
+import '../data/avatar_catalog.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -28,10 +29,6 @@ class ProfileScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final userProvider = Provider.of<UserProvider>(context);
     final user = userProvider.user;
-
-    // GUARD: if user becomes null while this screen is active
-    // (e.g. deleted/logged out from elsewhere), bail out to login safely
-    // instead of crashing on a null user.
     if (user == null && !userProvider.isLoading) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (context.mounted) {
@@ -63,6 +60,8 @@ class ProfileScreen extends StatelessWidget {
           child: Column(
             children: [
               _buildAvatarCard(context, userProvider, user),
+              const SizedBox(height: 12),
+              _buildCustomizeRow(context),
               const SizedBox(height: 20),
               if (userProvider.isGuest) ...[
                 _buildGuestUpgradeCard(context, userProvider),
@@ -101,6 +100,10 @@ class ProfileScreen extends StatelessWidget {
     final hasName = user.name != null && (user.name as String).isNotEmpty;
     final initial = hasName ? user.name.substring(0, 1).toUpperCase() : 'G';
 
+    // NEW — resolve selected avatar emoji, if any
+    final String? selectedAvatarId = user.selectedAvatar as String?;
+    final String? avatarEmoji = AvatarCatalog.byId(selectedAvatarId)?.emoji;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 20),
@@ -120,40 +123,52 @@ class ProfileScreen extends StatelessWidget {
       ),
       child: Column(
         children: [
-          Stack(
-            children: [
-              Hero(
-                tag: 'profile_avatar',
-                child: CircleAvatar(
-                  radius: 52,
-                  backgroundColor: Theme.of(context).primaryColor,
-                  child: Text(
-                    initial,
-                    style: const TextStyle(
-                      fontSize: 42,
-                      fontWeight: FontWeight.bold,
+          GestureDetector(
+            onTap: () => Navigator.pushNamed(context, '/avatar-shop'),
+            child: Stack(
+              children: [
+                Hero(
+                  tag: 'profile_avatar',
+                  child: CircleAvatar(
+                    radius: 52,
+                    backgroundColor: Theme.of(context).primaryColor,
+                    child: avatarEmoji != null
+                        ? Text(
+                            avatarEmoji,
+                            style: const TextStyle(fontSize: 46),
+                          )
+                        : Text(
+                            initial,
+                            style: const TextStyle(
+                              fontSize: 42,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                  ),
+                ),
+                Positioned(
+                  bottom: 2,
+                  right: 2,
+                  child: Container(
+                    padding: const EdgeInsets.all(5),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).primaryColor,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: Theme.of(context).scaffoldBackgroundColor,
+                        width: 2.5,
+                      ),
+                    ),
+                    child: const Icon(
+                      Icons.edit,
                       color: Colors.white,
+                      size: 14,
                     ),
                   ),
                 ),
-              ),
-              Positioned(
-                bottom: 2,
-                right: 2,
-                child: Container(
-                  padding: const EdgeInsets.all(5),
-                  decoration: BoxDecoration(
-                    color: Colors.green,
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: Theme.of(context).scaffoldBackgroundColor,
-                      width: 2.5,
-                    ),
-                  ),
-                  child: const Icon(Icons.check, color: Colors.white, size: 14),
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
           const SizedBox(height: 18),
           Text(
@@ -191,6 +206,63 @@ class ProfileScreen extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildCustomizeRow(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: _buildCustomizeChip(
+            context,
+            icon: Icons.face_retouching_natural,
+            label: 'Avatars',
+            onTap: () => Navigator.pushNamed(context, '/avatar-shop'),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _buildCustomizeChip(
+            context,
+            icon: Icons.palette_outlined,
+            label: 'Themes',
+            onTap: () => Navigator.pushNamed(context, '/theme-shop'),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCustomizeChip(
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        decoration: BoxDecoration(
+          color: Theme.of(context).cardColor,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, color: Theme.of(context).primaryColor, size: 22),
+            const SizedBox(height: 6),
+            Text(
+              label,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -614,13 +686,9 @@ class ProfileScreen extends StatelessWidget {
                         try {
                           final success = await userProvider.deleteAccount();
 
-                          // Close the dialog using its OWN context
                           if (dialogContext.mounted) {
                             Navigator.pop(dialogContext);
                           }
-
-                          // Navigate using the ORIGINAL screen context,
-                          // captured before the dialog ever opened
                           if (success && context.mounted) {
                             Navigator.of(context).pushNamedAndRemoveUntil(
                               '/login',
